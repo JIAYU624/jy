@@ -1,0 +1,2354 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POETRY PRISON / 诗狱</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=ZCOOL+QingKe+HuangYou&family=Noto+Serif+SC:wght@400;700&display=swap');
+
+        /* ========================================================
+           🎨 美工替换指南一：关卡背景 (BACKGROUNDS)
+           操作方法：注释掉当前的 background 颜色，
+           取消注释对应的 url() 路径，并填入你的本地图片路径。
+           （确保所有的场景底图比例建议为 900x600 或 800x600）
+           ======================================================== */
+        .scene-root {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-size: cover !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+            overflow: hidden;
+        }
+
+        /* 首页背景 */
+        #scene-title { 
+            background: linear-gradient(to bottom, #d4dee5 0%, #b8c6cb 60%, #9ba8aa 60%, #7e8b8c 100%); 
+            background-image: url('首页.png');
+        }
+        /* 第一章：车间背景 */
+        #scene-ch1 { 
+            background: #2c2f33; 
+            background-image: url('第一幕_副本.png');
+        }
+        /* 第二章：诊所背景 */
+        #scene-ch2 { 
+            background: #1a202c; 
+            background-image: url('第二幕.jpg');
+        }
+        /* 第三章：城中村背景 */
+        #scene-ch3 { 
+            background: #1a1e24; 
+            background-image: url('第三幕.png');
+        }
+        /* 第四章：出版社/文化工业背景 */
+        #scene-ch4 { 
+            background: #2c1a1a; 
+            background-image: url('第四幕背景.png');
+        }
+        /* 尾声：真结局深渊背景 */
+        #scene-epilogue { 
+            background: #0a0a0a; 
+            /* background-image: url('assets/bg_epilogue_true.jpg'); */
+        }
+        /* 尾声：假结局颁奖背景 */
+        #fake-ending-scene { 
+            background: radial-gradient(circle, #fff 0%, #aaddff 100%); 
+            background-image: url('结尾1.png');
+            background-size: cover;
+            background-position: center;
+        }
+        
+        /* ======================================================== */
+
+        :root {
+            --bg-color: #1a1a1a;
+            --rust-red: #8b3a3a;
+            --sickly-green: #4a5d4e;
+            --dirty-blue: #3b4d5e;
+            --ui-border: #444;
+            --text-main: #e0e0e0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Noto Serif SC', serif;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 900px;
+            height: 600px;
+            transform-origin: center center;
+            background-color: var(--bg-color);
+            position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+            border: 3px solid #000;
+            overflow: hidden;
+            display: flex;
+        }
+
+        #scene-layer {
+            position: relative;
+            width: 900px;
+            height: 600px;
+            transition: opacity 1s ease;
+            overflow: hidden;
+            background-color: #1a1a1a;
+        }
+
+        #inventory-layer {
+            position: relative;
+            width: 100px;
+            height: 600px;
+            background: #000;
+            border-left: 4px solid #000;
+            display: none;
+            flex-direction: column;
+            padding: 20px 0;
+            box-sizing: border-box;
+            gap: 15px;
+            align-items: center;
+            overflow-y: auto;
+            opacity: 1;
+            transition: opacity 1s ease;
+        }
+
+        .inv-slot {
+            width: 70px;
+            height: 70px;
+            background-color: #d4c4a8;
+            border: 3px solid #000;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            box-shadow: inset 0 0 0 3px #d4c4a8, inset 0 0 0 5px #f4e8d4;
+            flex-shrink: 0;
+        }
+
+        .inv-slot.selected {
+            background-color: #e5d8c0;
+            border-color: #fff;
+            box-shadow: inset 0 0 0 3px #e5d8c0, inset 0 0 0 6px #fff, 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        #dialog-layer {
+            position: absolute;
+            bottom: 15px;
+            left: 400px;
+            transform: translateX(-50%);
+            background: transparent;
+            color: #fff;
+            padding: 8px 20px;
+            border: none;
+            font-size: 18px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+            text-align: center;
+            z-index: 100;
+            letter-spacing: 2px;
+            max-width: 700px;
+            text-shadow: 0 2px 4px rgba(0,0,0,1), 0 0 3px #000, 0 0 6px #000;
+        }
+
+        .clickable {
+            cursor: pointer;
+            position: absolute;
+        }
+        
+        .clickable:hover {
+            filter: brightness(1.2) drop-shadow(0 0 5px rgba(255,255,255,0.3));
+        }
+
+        .title-text {
+            position: absolute;
+            top: 100px;
+            width: 100%;
+            text-align: center;
+            font-size: 48px;
+            color: #fff;
+            letter-spacing: 10px;
+            font-weight: bold;
+            animation: shake 4s infinite alternate;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .black-cube-title {
+            position: absolute;
+            top: 250px;
+            left: 350px;
+            width: 100px;
+            height: 100px;
+            background: #050505;
+            border: 1px solid #333;
+            box-shadow: 0 0 30px #000 inset;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .void-eye {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #000, #333, #000);
+            animation: spin 3s linear infinite;
+            box-shadow: 0 0 10px #000 inset;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes smoke { 0% { transform: scale(1) translateY(0); opacity:0.5; } 100% { transform: scale(2) translateY(-50px); opacity:0; } }
+        @keyframes fall { 0% { transform: translateY(0); opacity:1; } 100% { transform: translateY(50px); opacity:0; } }
+
+        .play-square-btn {
+            transition: transform 0.1s, background 0.3s;
+        }
+        .play-square-btn:active {
+            transform: scale(0.95);
+        }
+        .play-square-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+
+        .rusty-jitter {
+            animation: rusty-boil 0.8s infinite steps(1);
+            transform-origin: center;
+        }
+
+        .char-jitter {
+            display: inline-block;
+            animation: rusty-boil 0.8s infinite steps(1);
+            transform-origin: center;
+        }
+        .char-jitter:nth-child(2n) { animation-delay: -0.2s; animation-duration: 0.9s; }
+        .char-jitter:nth-child(3n) { animation-delay: -0.4s; animation-duration: 0.7s; }
+        .char-jitter:nth-child(5n) { animation-delay: -0.3s; animation-duration: 1.0s; }
+
+        @keyframes rusty-boil {
+            0% { transform: translate(0px, 0px) rotate(0deg); }
+            25% { transform: translate(1px, -1px) rotate(0.5deg); }
+            50% { transform: translate(-1px, 1px) rotate(-0.5deg); }
+            75% { transform: translate(-1px, -1px) rotate(0deg); }
+            100% { transform: translate(0px, 0px) rotate(0deg); }
+        }
+
+        .vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.8) 120%),
+                        linear-gradient(to right, rgba(0,0,0,0.9) 0%, transparent 8%, transparent 92%, rgba(0,0,0,0.9) 100%);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 50;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #222; border: 2px solid var(--rust-red);
+            padding: 20px; text-align: center; color: white;
+            position: relative;
+            box-sizing: border-box;
+            max-height: 95%; 
+            overflow-y: auto; 
+        }
+        .close-modal {
+            position: absolute; top: 5px; right: 10px; cursor: pointer; color: #888;
+            z-index: 10;
+        }
+
+        #cube-reveal-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.92);
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 1s ease;
+            backdrop-filter: blur(5px);
+        }
+        .cube-glow {
+            width: 110px;
+            height: 110px;
+            animation: cube-float 4s ease-in-out infinite, cube-glow-anim 2s alternate infinite;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .cube-glow:hover {
+            transform: scale(1.1);
+        }
+        @keyframes cube-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        @keyframes cube-glow-anim {
+            from { filter: drop-shadow(0 0 10px rgba(255,255,255,0.4)); }
+            to { filter: drop-shadow(0 0 30px rgba(255,255,255,0.9)); }
+        }
+        #cube-reveal-text {
+            margin-top: 50px;
+            color: #fff;
+            text-align: center;
+            font-size: 18px;
+            line-height: 2;
+            letter-spacing: 3px;
+            font-family: 'Noto Serif SC', serif;
+            pointer-events: none;
+        }
+        .click-to-continue {
+            position: absolute;
+            bottom: 40px;
+            font-size: 14px;
+            color: #666;
+            letter-spacing: 4px;
+            animation: fade-pulse 2s infinite;
+            pointer-events: none;
+        }
+        @keyframes fade-pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.2); opacity: 0; }
+            40% { transform: scale(0.8); opacity: 0.6; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in {
+            animation: popIn 1.2s cubic-bezier(0.34, 1.2, 0.64, 1) forwards;
+        }
+
+        @keyframes rise-up {
+            0% { transform: translateY(0) scale(0.3) rotate(0deg); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-50px) scale(1) rotate(15deg); opacity: 1; }
+        }
+        .rising-cube {
+            animation: rise-up 1.8s ease-out forwards;
+        }
+        
+        .cut-fall {
+            transition: all 1.5s ease-in;
+            transform-origin: bottom center;
+            transform: translateY(10px) rotate(30deg);
+            opacity: 0.3;
+        }
+
+        @keyframes slide-out-cabinet {
+            0% { transform: translateY(0px) scale(0.6); opacity: 0; }
+            30% { opacity: 1; }
+            80% { transform: translateY(-100px) scale(1.2); opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.2); opacity: 0; }
+        }
+        .slide-out {
+            animation: slide-out-cabinet 1.5s ease-out forwards;
+        }
+
+        @keyframes shock-quake {
+            0% { transform: translate(0, 0); filter: blur(0px); }
+            10% { transform: translate(-15px, 15px); filter: blur(3px); }
+            20% { transform: translate(15px, -15px); filter: blur(6px); }
+            30% { transform: translate(-10px, -15px); filter: blur(3px); }
+            40% { transform: translate(15px, 10px); filter: blur(7px); }
+            50% { transform: translate(-5px, 15px); filter: blur(4px); }
+            60% { transform: translate(10px, -5px); filter: blur(8px); }
+            70% { transform: translate(-10px, -10px); filter: blur(3px); }
+            80% { transform: translate(5px, 5px); filter: blur(1px); }
+            90% { transform: translate(-2px, 2px); filter: blur(0px); }
+            100% { transform: translate(0, 0); filter: blur(0px); }
+        }
+        .shock-effect {
+            animation: shock-quake 1.8s ease-in-out forwards;
+        }
+
+        #knowledge-panel {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 210;
+            display: none;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            padding: 50px 40px; 
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .knowledge-content {
+            width: 100%;
+            max-width: 820px; 
+            color: #ccc;
+            font-family: 'Noto Serif SC', serif;
+            line-height: 2.2;
+            font-size: 16px;
+            letter-spacing: 1.5px;
+            text-align: justify;
+            height: 380px; 
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .knowledge-title {
+            color: #d4c4a8;
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            text-align: center;
+            letter-spacing: 5px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+            width: 100%;
+            max-width: 820px; 
+        }
+        .close-knowledge {
+            position: absolute;
+            bottom: 40px; 
+            padding: 10px 30px;
+            border: 1px solid #555;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            letter-spacing: 3px;
+        }
+        .close-knowledge:hover {
+            border-color: #fff; color: #fff; background: rgba(255,255,255,0.1);
+        }
+        
+        .know-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            color: #555;
+            cursor: pointer;
+            padding: 20px;
+            transition: color 0.3s;
+            user-select: none;
+        }
+        .know-nav-btn:hover { color: #fff; }
+        #know-prev { left: 15px; } 
+        #know-next { right: 15px; } 
+        #know-page-indicator {
+            position: absolute;
+            bottom: 105px;
+            font-size: 14px;
+            color: #666;
+            letter-spacing: 2px;
+            font-family: monospace;
+        }
+
+        #chapter-intro-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 300;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 1s ease;
+            cursor: pointer;
+        }
+        .chapter-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 50px;
+            letter-spacing: 5px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .chapter-poem {
+            font-size: 20px;
+            line-height: 2.2;
+            letter-spacing: 4px;
+            text-align: center;
+            color: #ccc;
+            font-style: italic;
+        }
+
+        #reveal-paper-icon {
+            width: 45px;
+            height: 60px;
+            background: #f4e8d4;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+            cursor: pointer;
+            display: none;
+            z-index: 205;
+            transform: rotate(15deg);
+            transition: transform 0.3s, box-shadow 0.3s;
+            flex-shrink: 0; 
+        }
+        #reveal-paper-icon:hover {
+            transform: rotate(0deg) scale(1.1);
+            box-shadow: 0 0 15px rgba(255,255,255,0.6);
+        }
+        .paper-lines {
+            width: 70%; height: 2px; background: #bbaaaa; margin: 10px auto;
+        }
+
+        #poem-reading-panel {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.85); z-index: 250;
+            display: none; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.5s;
+        }
+        .poem-paper {
+            background: #f4e8d4; width: 450px; padding: 50px 40px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            color: #2c2621; font-family: 'Noto Serif SC', serif;
+            font-size: 20px; line-height: 2.2; white-space: pre-wrap;
+            position: relative;
+            background-image: repeating-linear-gradient(to bottom, transparent, transparent 42px, rgba(0,0,0,0.05) 43px, rgba(0,0,0,0.05) 44px);
+        }
+        .close-poem-btn {
+            position: absolute; top: 15px; right: 20px;
+            font-size: 24px; cursor: pointer; color: #8b3a3a;
+            transition: transform 0.2s;
+        }
+        .close-poem-btn:hover { transform: scale(1.2); }
+
+        #rotate-tip {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 18px;
+            letter-spacing: 3px;
+            text-align: center;
+            gap: 20px;
+        }
+        @media (orientation: portrait) {
+            #rotate-tip { display: flex; }
+        }
+        @media (orientation: landscape) {
+            #rotate-tip { display: none; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="rotate-tip">
+    <div style="font-size:48px;">↻</div>
+    <div>请旋转手机至横屏</div>
+    <div style="font-size:14px; color:#666; margin-top:10px;">Please rotate your device to landscape</div>
+</div>
+<div id="game-container">
+    <div id="scene-layer"></div>
+    <div id="inventory-layer"></div>
+    <div id="bgm-btn" onclick="toggleBgm()" style="position:absolute; bottom:8px; right:8px; z-index:1000; cursor:pointer; width:28px; height:28px; opacity:0.6; transition:opacity 0.2s;" title="背景音乐开关">
+        <svg id="bgm-icon-on" viewBox="0 0 24 24" fill="#fff" style="width:100%;height:100%;">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+        </svg>
+        <svg id="bgm-icon-off" viewBox="0 0 24 24" fill="#fff" style="width:100%;height:100%;display:none;">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+        </svg>
+    </div>
+    <div id="dialog-layer"></div>
+    
+    <div id="modal">
+        <div class="modal-content" id="modal-inner">
+            <span class="close-modal" onclick="closeModal()">✖</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+    
+    <div id="cube-reveal-layer">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 50px;">
+            <div id="reveal-cube-svg" class="cube-glow"></div>
+            <div id="reveal-paper-icon" title="阅读附带的纸条">
+                <div style="margin-top:10px;">
+                    <div class="paper-lines"></div><div class="paper-lines"></div><div class="paper-lines"></div>
+                </div>
+            </div>
+        </div>
+        <div id="cube-reveal-text"></div>
+        <div id="cube-reveal-hint" style="margin-top: 15px; font-size: 12px; color: #8b3a3a; letter-spacing: 2px;">[ 点击方块以查阅理论档案 ]</div>
+        <!-- 增加了 id，用于动态修改提示文字 -->
+        <div class="click-to-continue" id="cube-reveal-close-text">- 点击空白处收入行囊 -</div>
+    </div>
+
+    <div id="poem-reading-panel">
+        <div class="poem-paper">
+            <div class="close-poem-btn" id="close-poem-btn">✖</div>
+            <div id="poem-paper-content"></div>
+        </div>
+    </div>
+
+    <div id="knowledge-panel">
+        <div class="knowledge-title" id="knowledge-title-text"></div>
+        <div class="knowledge-content" id="knowledge-text"></div>
+        
+        <div id="know-prev" class="know-nav-btn">◀</div>
+        <div id="know-next" class="know-nav-btn">▶</div>
+        <div id="know-page-indicator"></div>
+
+        <div class="close-knowledge" id="close-knowledge-btn">合上并继续</div>
+    </div>
+    
+    <div id="chapter-intro-layer">
+        <div class="chapter-title" id="chapter-intro-title"></div>
+        <div class="chapter-poem" id="chapter-intro-poem"></div>
+        <div class="click-to-continue" style="display:block;">- 点击屏幕进入 -</div>
+    </div>
+</div>
+
+<script>
+    const state = {
+        inventory: [],
+        selectedItem: null,
+        currentScene: 'title',
+        flags: {
+            ch1_clockFixed: false,
+            ch1_rustComplete: false,
+            ch1_cubeTaken: false,
+            
+            ch2_xrayPlaced: false,
+            ch2_yarnExtracted: false,
+            ch2_houseBuilt: false,
+            ch2_doorOpened: false,
+            ch2_cubeTaken: false,
+            
+            ch3_dialed: false,
+            ch3_watered: false,
+            ch3_grown: false,
+            ch3_cubeTaken: false,
+            
+            ch4_bookMade: false,
+            ch4_bookTaken: false,
+            ch4_keyTaken: false,
+            epilogue_rejected: false 
+        }
+    };
+
+    /* ========================================================
+       🎨 美工替换指南二：物品与UI图标 (ITEMS & UI ASSETS)
+       操作方法：如果你需要用本地图片替换这些用代码画的 SVG 图形，
+       只需将 svg 属性的值替换为对应的 img 标签即可。
+       例如： 
+       'match': { name: '火柴', svg: '<img src="assets/items/match.png" style="width:100%; height:100%; object-fit:contain;">' }
+       ======================================================== */
+    const itemsData = {
+        'iron_half1': { name: '半块生锈铁片', svg: '<img src="生锈的铁片1.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'iron_half2': { name: '半块生锈铁片', svg: '<img src="生锈的铁片2.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'iron_gear': { name: '生锈的齿轮', svg: '<img src="生锈的齿轮.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'iron_moon': { name: '铁弯月', svg: '<img src="铁月亮.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'match': { name: '火柴', svg: '<svg viewBox="0 0 100 100"><rect x="45" y="20" width="10" height="60" fill="#d2b48c"/><circle cx="50" cy="20" r="8" fill="#8b0000"/></svg>' },
+        'black_cube1': { name: '黑方块', svg: '<svg viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" fill="#111" stroke="white" stroke-width="4"/></svg>' },
+        'red_cube': { name: '红方块', svg: '<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#8b0000" stroke="#4a0000" stroke-width="2"/><rect x="30" y="30" width="40" height="40" fill="#cc0000" opacity="0.6"/></svg>' },
+        'glass_cup': { name: '玻璃空杯', svg: '<img src="杯子.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'cup_water': { name: '装满蓝色眼泪的杯子', svg: '<img src="水杯有水.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'scissors': { name: '生锈的剪刀', svg: '<img src="剪刀.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'white_cube': { name: '白方块', svg: '<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#f0f0f0" stroke="#ccc" stroke-width="2"/><rect x="30" y="30" width="40" height="40" fill="#fff" opacity="0.5"/></svg>' },
+        'xray': { name: '肺部X光片', svg: '<img src="x光片.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'tweezers': { name: '镊子', svg: '<img src="镊子.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'lung_yarn': { name: '肺里抽出的毛线', svg: '<img src="毛线.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'needle': { name: '生锈的绣花针', svg: '<img src="绣花针.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'mini_building': { name: '微缩的废弃厂房', svg: '<img src="屋子.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'poetry_book': { name: '《草根诗集》', svg: '<img src="诗集.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'burned_book': { name: '烧毁的伪装 (真实的痛楚)', svg: '<img src="烧掉的诗集.png" style="width:100%; height:100%; object-fit:contain;">' },
+        'gold_key': { name: '金钥匙', svg: '<img src="钥匙.png" style="width:100%; height:100%; object-fit:contain;">' }
+    };
+
+    const combinations = {
+        'iron_half1+iron_half2': 'iron_moon',
+        'iron_half2+iron_half1': 'iron_moon',
+        'lung_yarn+needle': 'mini_building',
+        'needle+lung_yarn': 'mini_building',
+        'match+poetry_book': 'burned_book',
+        'poetry_book+match': 'burned_book'
+    };
+
+    /* ========================================================
+       📖 集中管理的理论档案数据
+       ======================================================== */
+    const archiveData = {
+        'black_cube1': {
+            title: '【 黑方块 】',
+            desc: '流水线上的时间夺走了血肉<br>只留下一颗生锈的铁疙瘩。',
+            archiveTitle: '“打工诗人”与打工诗',
+            pages: [
+                `<div style="max-width: 650px; margin: 40px auto 0; text-align: justify; line-height: 2.2;">打工诗是以中国改革开放后进城务工群体生活境遇为题材的诗歌类型，兴起于20世纪80年代。21世纪后，部分打工诗经由刊物进入大众视野，有了更为广泛的传播效应。这些作品多以直白质朴的语言，直面打工人的生存困境，是底层群体的自我发声与精神表达途径，也是反映转型期社会现实的媒介。</div>`,
+                `<div style="display: flex; gap: 40px; align-items: flex-start;">
+                    <div style="flex: 1; padding-right: 40px; border-right: 1px solid #333; color: #aaa;">
+                        “人与人之间的关系获得物的性质，并从而获得一种‘幽灵般的对象性’”<br><br>
+                        “人自己的活动，他自己的劳动，变成了客观的、不以他的意志为转移的东西”<br><br>
+                        “工人的劳动力同他的个性相分离，它变成一种物，一种他在市场上出卖的对象”<br><br>
+                        <span style="color:#777;">——[匈]卢卡奇 《历史与阶级意识：关于马克思主义辩证法的研究》</span>
+                    </div>
+                    <div style="flex: 1; color: #e0e0e0;">
+                        在资本主义生产体系中，人的劳动异化为外在客体，劳动者被物化、机械化、原子化，主体性被消解，沦为生产环节中的被动工具。
+                    </div>
+                </div>`,
+                `<div style="display: flex; gap: 40px; align-items: flex-start;">
+                    <div style="flex: 1; padding-right: 40px; border-right: 1px solid #333; color: #aaa;">
+                        《流水线上的雕塑》<br>许立志<br><br>
+                        沿着流水线，笔直而下<br>
+                        我看到了自己的青春<br>
+                        汩汩流动，如血般地<br>
+                        主板，弹片，铁盒……一一晃过<br>
+                        手头的活没人会帮我干<br>
+                        幸亏所在的工站赐我以<br>
+                        双手如同 <strong><u>机器</u></strong><br>
+                        不知疲倦 地，抢，抢，抢<br>
+                        直到手上盛开着繁华的<br>
+                        茧，渗血的伤<br>
+                        我都不曾发现<br>
+                        自己早站成了<br>
+                        一座古老的 <strong><u>雕塑</u></strong>
+                    </div>
+                    <div style="flex: 1; color: #e0e0e0;">
+                        《流水线》（选段）<br>郑小琼<br><br>
+                        在流水线的流动中，是流动的人<br>
+                        他们来自河东或河西，她站着坐着，编号，蓝色的工衣<br>
+                        白色的工帽，手指头上工位， <u>姓名是A234、<br>A967、Q36……</u><br><br>
+                        <span style="color:#ccc;">这种写作既是打工群体对自身被物化、劳动被商品化的现实体认，也包含着对生存困境的感知与控诉。</span>
+                    </div>
+                </div>`
+            ],
+            poem: `直到手上盛开着繁华的茧，渗血的伤\n我都不曾发现\n自己早站成了\n一座古老的雕塑\n\n 许立志 《流水线上的雕塑》`
+        },
+        'red_cube': {
+            title: '【 红方块 】',
+            desc: '他们把呼吸织成了大厦<br>方块里沾染着被榨取的生命与鲜血。',
+            archiveTitle: '文学夸张与形象塑造',
+            pages: [
+                `<strong style="display:block; margin-bottom:20px; font-size:18px; color:#fff;">（1）异化理论</strong>
+                <div style="display: flex; gap: 40px; align-items: flex-start;">
+                    <div style="flex: 1; padding-right: 40px; border-right: 1px solid #333; color: #aaa;">
+                        “在国民经济的实际状况中，劳动的这种现实化表现为工人的非现实化，对象化表现为对象的丧失和被对象奴役，占有表现为异化、外化。”<br><br>
+                        <span style="color:#777;">——[德]马克思 《1844年经济学哲学手稿》</span>
+                    </div>
+                    <div style="flex: 1; color: #e0e0e0;">
+                        四重异化：劳动产品、劳动活动、人的类本质及人与人关系
+                    </div>
+                </div>`,
+                `<div style="display: flex; gap: 40px; align-items: stretch; height: 100%;">
+                    <div style="flex: 1.2; padding-right: 30px; border-right: 1px solid #333; color: #aaa; font-size: 14px; line-height: 1.9;">
+                        <div style="color: #e0e0e0; font-size: 16px; margin-bottom: 5px;">《伍春兰》<br><span style="font-size:14px; color:#888;">郑小琼</span></div>
+                        岁月像毛织厂纷飞的毛绒扑进她的身体<br>
+                        在她的肺部扎根 炎症 胸闷 水土不适<br>
+                        她习惯了轰鸣的车间 餐餐的猪血汤<br>
+                        “腥稠而漆黑的猪血会带走积蓄在肺部的毛绒”<br>
+                        这么多年 她一直这样说 她觉得塞在肺部的<br>
+                        毛绒越来越多 她咳嗽 像村前的河流<br>
+                        淤积了塑料袋 煤灰球 垃圾 我看见<br>
+                        她坐在针织机上捂着胸口 停下来了<br>
+                        起身去厕所 又若无所事地继续缝盘<br>
+                        她习惯了毛织厂可疑的饭菜 冬瓜 土豆<br>
+                        猪血汤……她伸出勺子帮我舀起半碗猪血<br>
+                        “你还年轻 多吃这个猪血汤 清肺的<br>
+                        不要让毛绒塞住了肺”<br>
+                        ……
+                    </div>
+                    <div style="flex: 1; color: #e0e0e0; text-align: justify; line-height: 2.2; display: flex; flex-direction: column; justify-content: center;">
+                        <div style="margin-bottom: 20px;">
+                            <span style="color:#cc0000; font-weight:bold;">毛绒、肺部淤积、猪血汤、针织机</span>等意象，塑造出在异化环境中隐忍承受、将伤害视作常态的底层女工形象。
+                        </div>
+                        <div>
+                            然而，伍春兰对“我”的关心，使人与人之间的关系短暂脱离纯粹的生产逻辑，在高度异化的环境中显现出微弱但真实的情感联系。
+                        </div>
+                    </div>
+                </div>`,
+                `<strong style="display:block; margin-bottom:20px; font-size:18px; color:#fff;">（2）“震惊体验”与文本塑造</strong>
+                <div style="display: flex; gap: 40px; align-items: flex-start;">
+                    <div style="flex: 1; padding-right: 40px; border-right: 1px solid #333; color: #aaa;">
+                        "震惊的因素在特殊印象中所占成分愈大，意识也就越坚定不移地成为防备刺激的挡板；它的这种变化愈充分，那些印象进入经验（Erfahrung）的机会就愈少，并倾向于滞留在人生体验（Erlebnis）的某一时刻的范围里。"<br><br>
+                        "这个过程对于读者的全部效果就是一种震惊：通过把日常生活中的要素从它们的原始语境中超拔出来并重新布列在一个新的星丛中，本雅明希望能够剥去它们为人熟知的性质，激发读者摆脱被动状态，获得一种积极的批评姿态。"<br><br>
+                        <span style="color:#777;">本雅明 《发达资本主义时代的抒情诗人》</span>
+                    </div>
+                    <div style="flex: 1; color: #e0e0e0;">
+                        在当今机械复制时代，传统艺术的审美形态"韵味"已逐渐失落，"震惊"成为现代文化艺术带给我们的另一种审美体验。"震惊"不是一种愉悦的体验，而是现代大都市居民在高度密集的刺激、变化和意外面前，心理所产生的一种应激反应。对此，人的心理为了保护自身，建立起一道"防范刺激的屏障"。这道屏障挡住了过度刺激，但也导致了经验的贫乏。<br><br>
+                        然而诗歌的书写恰恰能用"震惊"打破"震惊"。它强行击碎读者的麻木防御，迫使他们用意识去"消化"这种经验，从而将低级的碎片经验转化为高级的审美经验。
+                    </div>
+                </div>`
+            ],
+            poem: `她用毛线织起了楼房\n为儿子织起了媳妇\n她佝偻得更低\n肺管里毛绒让她不能呼吸......\n\n那是一座用血肉换来的城\n却容不下她残喘的半生。`
+        },
+        'white_cube': {
+            title: '【 白方块 】',
+            desc: '霓虹灯照不亮归途<br>这廉价的白色，是城中村里无根的梦。',
+            archiveTitle: '悬置的身份与漂浮的社会',
+            pages: [
+                `<div style="width: fit-content; margin: 0 auto; line-height: 2.2; text-align: left; color: #e0e0e0;">
+                    《在东莞遇见一小块稻田》<br>杨克<br><br>
+                    厂房的脚趾缝<br>
+                    矮脚稻<br>
+                    拼命抱住最后一些土<br>
+                    它的根锚<br>
+                    疲惫地张着<br>
+                    愤怒的手想从泥水里<br>
+                    抠出鸟声和虫叫<br>
+                    从一片亮汪汪的阳光里<br>
+                    我看见禾叶<br>
+                    耸起的背脊<br>
+                    一株株稻穗在拔节<br>
+                    谷粒灌浆在夏风中微微笑着<br>
+                    跟我交谈<br>
+                    顿时我从喧嚣浮躁的汪洋大海里<br>
+                    拧干自己<br>
+                    像一件白衬衣<br>
+                    昨天我怎么也没想到<br>
+                    在东莞<br>
+                    我竟然遇见一小块稻田<br>
+                    青黄的稻穗<br>
+                    一直晃在<br>
+                    欣喜和悲痛的瞬间
+                </div>`,
+                `<div style="max-width: 650px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px;">
+                    <div style="color: #aaa; text-align: justify; line-height: 2;">
+                        “文学的根本社会功能，就是把处于‘未被命名’状态的感受结构，转化为可被感知、可被分享的文化形式。社会转型期的集体经验，往往先以感受结构的方式存在，再通过文学获得表达。”<br>
+                        <span style="color:#777; display:block; text-align:right; margin-top:5px;">——[英]雷蒙德·威廉斯 《马克思主义与文学》</span>
+                    </div>
+                    <div style="color: #e0e0e0; text-align: justify; line-height: 2; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        在社会剧烈变动时期，新的情感结构会最先出现在边缘群体、流动群体、未被整合的群体之中，这些经验无法被旧话语容纳，只能通过文学、诗歌等形式首次呈现。<br>
+                        <span style="color:#888; display:block; text-align:right; margin-top:5px; font-size:14px;">——参阅：[英]雷蒙德·威廉斯 《漫长的革命》</span>
+                    </div>
+                    <div style="color: #aaa; text-align: justify; line-height: 2;">
+                        “中介范畴是克服直观性、克服直接性的唯一手段。具体的总体，是通过中介来把握的。个体直接经验只有通过中介，才能上升到对社会总体的认识。”<br>
+                        <span style="color:#777; display:block; text-align:right; margin-top:5px;">——[匈]卢卡奇 《历史与阶级意识》</span>
+                    </div>
+                </div>`,
+                `<div style="max-width: 650px; margin: 20px auto 0; color: #e0e0e0; line-height: 2.2;">
+                    <div style="margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px dashed #444;">
+                        <div style="display: flex; margin-bottom: 10px;">
+                            <span style="color: #d4c4a8; font-weight: bold; width: 100px; flex-shrink: 0;">1978 年</span>
+                            <span>珠三角成为“世界工厂”</span>
+                        </div>
+                        <div style="display: flex; margin-bottom: 10px;">
+                            <span style="color: #d4c4a8; font-weight: bold; width: 100px; flex-shrink: 0;">1984 年</span>
+                            <span>《特区文学》刊发首篇打工文学作品</span>
+                        </div>
+                        <div style="display: flex;">
+                            <span style="color: #d4c4a8; font-weight: bold; width: 100px; flex-shrink: 0;">90年代后</span>
+                            <span>郑小琼等诗人崛起，打工诗歌正式成型。</span>
+                        </div>
+                    </div>
+                    <div style="text-align: justify; text-indent: 2em;">
+                        改革开放推动中国快速工业化、城市化，导致了城乡二元结构的撕裂，也构成了打工诗歌产生的社会基础。在背井离乡，城市失语的两难境地中，催生出了一批“身份悬浮”的农民工群体。可是，彼时的主流文化却无法承载其苦难、漂泊的情绪。这种未被表达的“情感结构”，便以诗歌形式爆发。所以，打工人的居所“城中村”也便成为了诗歌中承载孤寂、焦灼的重要意象，由此产生出的一系列具有共通性的情感经验，也进一步演化为集体的书写，起到了反映社会转型，催动社会反思的作用。
+                    </div>
+                </div>`
+            ],
+            poem: `昨天我怎么也没想到\n在东莞\n我竟然遇见一小块稻田\n青黄的稻穗\n一直晃在\n欣喜和悲痛的瞬间\n\n—— 杨克`
+        }
+    };
+
+    function showMsg(msg) {
+        const d = document.getElementById('dialog-layer');
+        d.innerText = msg;
+        d.style.opacity = 1;
+        setTimeout(() => { d.style.opacity = 0; }, 3000);
+    }
+
+    function revealCube(itemKey, title, desc, archiveTitle, knowledgePages, poemText, onComplete) {
+        const layer = document.getElementById('cube-reveal-layer');
+        const cubeEl = document.getElementById('reveal-cube-svg');
+        const textEl = document.getElementById('cube-reveal-text');
+        
+        const knowPanel = document.getElementById('knowledge-panel');
+        const knowTitleText = document.getElementById('knowledge-title-text');
+        const knowText = document.getElementById('knowledge-text');
+        const closeKnowBtn = document.getElementById('close-knowledge-btn');
+        const hintText = document.getElementById('cube-reveal-hint');
+        const closeTextEl = document.getElementById('cube-reveal-close-text'); 
+        
+        const btnPrev = document.getElementById('know-prev');
+        const btnNext = document.getElementById('know-next');
+        const pageInd = document.getElementById('know-page-indicator');
+
+        const paperIcon = document.getElementById('reveal-paper-icon');
+        const poemPanel = document.getElementById('poem-reading-panel');
+        const poemContent = document.getElementById('poem-paper-content');
+        const closePoemBtn = document.getElementById('close-poem-btn');
+
+        cubeEl.innerHTML = itemsData[itemKey].svg;
+        textEl.innerHTML = `<span style="font-weight:bold; font-size:24px; color:#d4c4a8;">${title}</span><br><br>${desc}`;
+        
+        // 动态修改底部提示语：如果是初次拾取，提示收入行囊；如果是从物品栏重温，提示关闭
+        if (onComplete) {
+            closeTextEl.innerText = '- 点击空白处收入行囊 -';
+        } else {
+            closeTextEl.innerText = '- 点击空白处关闭 -';
+        }
+
+        let currentPage = 0;
+
+        function renderPage() {
+            if (!knowledgePages || knowledgePages.length === 0) return;
+            knowTitleText.innerHTML = archiveTitle;
+            knowText.innerHTML = knowledgePages[currentPage];
+            pageInd.innerText = `- ${currentPage + 1} / ${knowledgePages.length} -`;
+            
+            btnPrev.style.display = currentPage > 0 ? 'block' : 'none';
+            btnNext.style.display = currentPage < knowledgePages.length - 1 ? 'block' : 'none';
+        }
+
+        if (knowledgePages && knowledgePages.length > 0) {
+            renderPage();
+            hintText.style.display = 'block';
+            cubeEl.style.cursor = 'pointer';
+        } else {
+            knowTitleText.innerHTML = '';
+            knowText.innerHTML = '';
+            hintText.style.display = 'none';
+            cubeEl.style.cursor = 'default';
+        }
+
+        if (poemText) {
+            paperIcon.style.display = 'block';
+            poemContent.innerHTML = poemText;
+            
+            paperIcon.onclick = (e) => {
+                e.stopPropagation(); 
+                poemPanel.style.display = 'flex';
+                void poemPanel.offsetWidth;
+                poemPanel.style.opacity = 1;
+            };
+        } else {
+            paperIcon.style.display = 'none';
+        }
+
+        layer.style.display = 'flex';
+        void layer.offsetWidth;
+        layer.style.opacity = 1;
+        cubeEl.style.opacity = '0';
+        cubeEl.style.transition = 'opacity 1.5s ease 0.5s';
+        setTimeout(() => { cubeEl.style.opacity = '1'; }, 50);
+
+        layer.onclick = null;
+        cubeEl.onclick = null;
+        closeKnowBtn.onclick = null;
+        btnPrev.onclick = null;
+        btnNext.onclick = null;
+
+        layer.onclick = (e) => {
+            if (e.target === layer) {
+                closeReveal();
+            }
+        };
+
+        btnPrev.onclick = () => { if (currentPage > 0) { currentPage--; renderPage(); } };
+        btnNext.onclick = () => { if (currentPage < knowledgePages.length - 1) { currentPage++; renderPage(); } };
+
+        if (knowledgePages && knowledgePages.length > 0) {
+            cubeEl.onclick = (e) => {
+                e.stopPropagation();
+                knowPanel.style.display = 'flex';
+                void knowPanel.offsetWidth;
+                knowPanel.style.opacity = 1;
+            };
+        }
+
+        closeKnowBtn.onclick = () => {
+            knowPanel.style.opacity = 0;
+            setTimeout(() => {
+                knowPanel.style.display = 'none';
+                closeReveal();
+            }, 800);
+        };
+
+        closePoemBtn.onclick = (e) => {
+            e.stopPropagation();
+            poemPanel.style.opacity = 0;
+            setTimeout(() => { poemPanel.style.display = 'none'; }, 500);
+        };
+        poemPanel.onclick = (e) => {
+            if(e.target === poemPanel) {
+                e.stopPropagation();
+                poemPanel.style.opacity = 0;
+                setTimeout(() => { poemPanel.style.display = 'none'; }, 500);
+            }
+        };
+
+        function closeReveal() {
+            layer.style.opacity = 0;
+            setTimeout(() => {
+                layer.style.display = 'none';
+                if(onComplete) onComplete();
+            }, 1000);
+        }
+    }
+
+    function addToInventory(itemKey) {
+        if (!state.inventory.includes(itemKey)) {
+            state.inventory.push(itemKey);
+            new Audio('拾取物品.mp3').play();
+            renderInventory();
+            showMsg(`获得：${itemsData[itemKey].name}`);
+        }
+    }
+
+    function removeFromInventory(itemKey) {
+        const idx = state.inventory.indexOf(itemKey);
+        if (idx > -1) {
+            state.inventory.splice(idx, 1);
+            if (state.selectedItem === itemKey) state.selectedItem = null;
+            renderInventory();
+        }
+    }
+
+    function renderInventory() {
+        const invLayer = document.getElementById('inventory-layer');
+        invLayer.innerHTML = '';
+        const maxSlots = 6;
+        
+        for (let i = 0; i < maxSlots; i++) {
+            const slot = document.createElement('div');
+            const item = state.inventory[i];
+            
+            slot.className = 'inv-slot';
+            if (item) {
+                if (state.selectedItem === item) {
+                    slot.classList.add('selected');
+                }
+                slot.innerHTML = itemsData[item].svg;
+                slot.onclick = () => handleInventoryClick(item);
+            }
+            invLayer.appendChild(slot);
+        }
+    }
+
+    function handleInventoryClick(itemKey) {
+        if (state.selectedItem === null) {
+            state.selectedItem = itemKey;
+        } else if (state.selectedItem === itemKey) {
+            state.selectedItem = null;
+        } else {
+            const comboKey = state.selectedItem + '+' + itemKey;
+            if (combinations[comboKey]) {
+                const newItem = combinations[comboKey];
+                removeFromInventory(state.selectedItem);
+                removeFromInventory(itemKey);
+                addToInventory(newItem);
+                showMsg(`组合成了：${itemsData[newItem].name}`);
+                state.selectedItem = null;
+            } else {
+                state.selectedItem = itemKey;
+            }
+        }
+        renderInventory();
+
+        // 🌟 新增功能：点击物品栏里的理论方块时，随时弹回查阅档案！
+        // 在第四章（ch4）为了方便选中并交给猫头鹰男，屏蔽弹窗讲解
+        // 只有在 archiveData 中注册的物品（黑、红、白方块）才会弹出讲解
+        if (archiveData[itemKey] && state.currentScene !== 'ch4') {
+            const data = archiveData[itemKey];
+            revealCube(
+                itemKey,
+                data.title,
+                data.desc,
+                data.archiveTitle,
+                data.pages,
+                data.poem,
+                null // 传入 null 代表这只是一次重温查阅，不需要触发“收集”的回调逻辑
+            );
+        }
+    }
+
+    function useItem(expectedItem, successCb, failMsg = "似乎没用。") {
+        if (state.selectedItem === expectedItem) {
+            removeFromInventory(expectedItem);
+            successCb();
+        } else if (state.selectedItem) {
+            showMsg(failMsg);
+        }
+    }
+
+    function checkItem(expectedItem) {
+        return state.selectedItem === expectedItem;
+    }
+
+    function consumeItem(item) {
+        removeFromInventory(item);
+    }
+
+    let modalCloseCallback = null;
+    function openModal(contentHtml, onClose = null) {
+        document.getElementById('modal-body').innerHTML = contentHtml;
+        document.getElementById('modal').style.display = 'flex';
+        modalCloseCallback = onClose;
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+        document.getElementById('modal-body').innerHTML = '';
+        if (modalCloseCallback) {
+            modalCloseCallback();
+            modalCloseCallback = null;
+        }
+    }
+
+    function showChapterIntro(title, poem, onComplete) {
+        const introLayer = document.getElementById('chapter-intro-layer');
+        const titleEl = document.getElementById('chapter-intro-title');
+        const poemEl = document.getElementById('chapter-intro-poem');
+        
+        titleEl.innerHTML = title;
+        poemEl.innerHTML = poem;
+        
+        introLayer.style.display = 'flex';
+        void introLayer.offsetWidth; 
+        introLayer.style.opacity = 1;
+        
+        introLayer.onclick = () => {
+            introLayer.style.opacity = 0;
+            introLayer.onclick = null; 
+            setTimeout(() => {
+                introLayer.style.display = 'none';
+                if (onComplete) onComplete();
+            }, 1000);
+        };
+    }
+
+    function loadScene(sceneName) {
+        if (sceneName !== 'title' && sceneName !== 'prologue') {
+            const keepItems = ['black_cube1', 'red_cube', 'white_cube', 'match', 'poetry_book', 'burned_book', 'gold_key'];
+            state.inventory = state.inventory.filter(item => keepItems.includes(item));
+        }
+
+        state.currentScene = sceneName;
+        state.selectedItem = null;
+        renderInventory();
+        const layer = document.getElementById('scene-layer');
+        const invLayer = document.getElementById('inventory-layer');
+        
+        layer.style.opacity = 0;
+        invLayer.style.opacity = 0; 
+        
+        setTimeout(() => {
+            if (sceneName === 'title' || sceneName === 'prologue') {
+                layer.style.width = '900px';
+                invLayer.style.display = 'none';
+            } else {
+                layer.style.width = '800px';
+                invLayer.style.display = 'flex';
+            }
+
+            layer.innerHTML = scenes[sceneName].html;
+            layer.innerHTML += '<div class="vignette"></div>';
+            if(scenes[sceneName].init) scenes[sceneName].init();
+            
+            const introData = scenes[sceneName].intro;
+            if (introData) {
+                showChapterIntro(introData.title, introData.poem, () => {
+                    layer.style.opacity = 1;
+                    invLayer.style.opacity = 1; 
+                });
+            } else {
+                layer.style.opacity = 1;
+                if (sceneName !== 'title' && sceneName !== 'prologue') {
+                    invLayer.style.opacity = 1; 
+                }
+            }
+        }, 500);
+    }
+
+    /* ========================================================
+       🎨 美工替换指南三：场景互动道具 (SCENE PROPS)
+       操作方法：我已经为每个主要道具都预留了 id。美工人员可以在
+       下方的 html 字符串中，找到包含 id="..." 的 div，
+       清空这个 div 内部由 css/svg 画的内容，然后放入本地图片即可。
+       ======================================================== */
+    const scenes = {
+        'title': {
+            html: `
+                <div id="scene-title" class="scene-root" style="display: flex; flex-direction: column; align-items: center;">
+                    <!-- 🎨 美工替换：首页标题 LOGO 图片 -->
+                    <div style="position: absolute; top: 8%; display: flex; flex-direction: column; align-items: center; z-index: 10;">
+                        <div style="font-family: 'Amatic SC', cursive; font-size: 80px; color: #1a1a1a; letter-spacing: 6px; line-height: 0.8; font-weight: bold;">
+                            ${"POETRY PRISON".split('').map(c => c === ' ' ? ' ' : '<span class="char-jitter">' + c + '</span>').join('')}
+                        </div>
+                        <div style="font-family: 'ZCOOL QingKe HuangYou', cursive; font-size: 36px; color: #1a1a1a; letter-spacing: 25px; margin-top: 15px; margin-left: 15px; font-weight: normal;">
+                            ${"诗狱".split('').map(c => '<span class="char-jitter">' + c + '</span>').join('')}
+                        </div>
+                    </div>
+
+                    <div class="clickable play-square-btn rusty-jitter" onclick="loadScene('prologue')" style="position: absolute; top: 35%; width: 55px; height: 45px; border: 3px solid #1a1a1a; border-radius: 2px; display: flex; justify-content: center; align-items: center; z-index: 10;">
+                        <div style="width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 16px solid #1a1a1a; margin-left: 5px;"></div>
+                    </div>
+                </div>
+            `
+        },
+        'prologue': {
+            html: `
+                <div id="scene-prologue" class="scene-root" style="background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 100px; box-sizing: border-box; cursor: pointer;">
+                    <div id="prologue-text" style="color: #fff; font-size: 20px; line-height: 2.4; letter-spacing: 4px; font-family: 'Noto Serif SC', serif; text-align: center; min-height: 250px;"></div>
+                    <div id="prologue-continue" class="click-to-continue" style="display: none; position: relative; bottom: auto; margin-top: 50px;">- 点击屏幕正式进入 -</div>
+                </div>
+            `,
+            init: function() {
+                const textContainer = document.getElementById('prologue-text');
+                const continueBtn = document.getElementById('prologue-continue');
+                const lines = [
+                    "欢迎来到诗狱的世界。",
+                    "",
+                    "在这里，每通过一个关卡，你都将获得一个方块——",
+                    "每一个方块里，都藏着打工人的诗与秘密。",
+                    "集齐三枚方块，一份神秘大礼，静候你的开启。",
+                    "",
+                    "请注意——",
+                    "每一幕开头的诗歌，都是打开谜题的钥匙......"
+                ];
+                let currentLine = 0;
+                let currentChar = 0;
+                let isTyping = true;
+
+                function typeWriter() {
+                    if (!isTyping) return;
+                    if (currentLine < lines.length) {
+                        if (lines[currentLine] === "") {
+                            textContainer.innerHTML += '<br>';
+                            currentLine++;
+                            currentChar = 0;
+                            setTimeout(typeWriter, 300);
+                        } else if (currentChar < lines[currentLine].length) {
+                            textContainer.innerHTML += lines[currentLine].charAt(currentChar);
+                            currentChar++;
+                            setTimeout(typeWriter, 80); 
+                        } else {
+                            textContainer.innerHTML += '<br>';
+                            currentLine++;
+                            currentChar = 0;
+                            setTimeout(typeWriter, 600); 
+                        }
+                    } else {
+                        continueBtn.style.display = 'block';
+                        isTyping = false;
+                    }
+                }
+
+                setTimeout(typeWriter, 800);
+
+                document.getElementById('scene-prologue').onclick = () => {
+                    if (isTyping) {
+                        isTyping = false;
+                        textContainer.innerHTML = lines.join('<br>');
+                        continueBtn.style.display = 'block';
+                    } else {
+                        loadScene('ch1');
+                    }
+                };
+            }
+        },
+        'ch1': {
+            intro: {
+                title: '第一章：铁月亮与时钟<br><span style="font-size:20px; color:#888; font-weight:normal;">—— “打工诗人”与打工诗</span>',
+                poem: '“我咽下一枚铁做的月亮<br>他们管它叫做螺丝......”'
+            },
+            html: `
+                <div id="scene-ch1" class="scene-root">
+                    
+                    <!-- 🎨 美工替换：第一章墙上时钟底图 -->
+                    <div id="ch1-clock" class="clickable" style="position:absolute; top:120px; right:150px; width:120px; height:120px; border-radius:50%; border:10px solid #333; display:flex; justify-content:center; align-items:center; overflow:hidden;">
+                        <img src="没修理的钟.png" style="position:absolute; width:100%; height:100%; object-fit:cover; border-radius:50%;">
+                        <div id="ch1-pointers" style="position:absolute; width:100%; height:100%; transform-origin:center;">
+                            <div style="position:absolute; top:10px; left:58px; width:4px; height:50px; background:#222; transform-origin:bottom center;"></div>
+                            <div style="position:absolute; top:25px; left:56px; width:8px; height:35px; background:#222; transform-origin:bottom center; transform:rotate(45deg);"></div>
+                        </div>
+                        <div id="ch1-gear-hole" style="position:absolute; width:36px; height:36px; border-radius:50%; border:2px dashed #888; background:rgba(200,200,200,0.5); z-index:2;"></div>
+                        <div id="ch1-gear-inserted" style="position:absolute; width:45px; height:45px; display:none; z-index:3;">
+                            ${itemsData['iron_gear'].svg}
+                        </div>
+                    </div>
+                    
+                    <!-- 🎨 第一章桌面物品 -->
+                    <div id="ch1-iron1" class="clickable" style="position:absolute; bottom:95px; left:200px; width:60px; height:60px;">
+                        ${itemsData['iron_half1'].svg}
+                    </div>
+                    <div id="ch1-iron2" class="clickable" style="position:absolute; bottom:85px; left:520px; width:60px; height:60px; transform:rotate(45deg);">
+                        ${itemsData['iron_half2'].svg}
+                    </div>
+                    <div id="ch1-gear" class="clickable" style="position:absolute; bottom:100px; left:120px; width:53px; height:53px;">
+                        ${itemsData['iron_gear'].svg}
+                    </div>
+                    <div id="ch1-match" class="clickable" style="position:absolute; bottom:90px; right:80px; width:75px; height:75px;"><img src="火柴.png" style="width:100%; height:100%; object-fit:contain;"></div>
+                    
+                    <!-- 🎨 美工替换：第一章工人雕塑 -->
+                    <div id="ch1-worker" class="clickable" style="position:absolute; bottom:85px; left:300px; width:200px; height:350px; clip-path: inset(0 0 40px 0);">
+                        <img id="ch1-worker-shadow" src="工人影子.png" style="position:absolute; width:100%; height:100%; object-fit:contain; transition: opacity 1s ease;">
+                        <img id="ch1-worker-statue" src="工人雕塑.png" style="position:absolute; width:75%; height:75%; object-fit:contain; opacity:0; transition: opacity 1s ease; top:12.5%; left:12.5%;">
+                        <div id="ch1-heart" style="position:absolute; top:200px; left:80px; width:35px; height:35px; background:transparent; cursor:pointer; display:none; border: 2px solid white; box-shadow: 0 0 8px white, inset 0 0 8px rgba(0,0,0,0.8); border-radius:3px;"></div>
+                    </div>
+                    
+                    <div class="clickable" onclick="if(!state.flags.ch1_cubeTaken){ showMsg('必须带走异化的痛苦（黑方块）。'); } else if(!state.inventory.includes('match')){ showMsg('黑暗中似乎还需要一点微弱的火光（必须拿走火柴）。'); } else { loadScene('ch2'); }" style="position:absolute; right:20px; bottom:20px; color:#fff; font-size:24px;">▶</div>
+                </div>
+            `,
+            init: function() {
+                if(!state.inventory.includes('iron_half1') && !state.inventory.includes('iron_moon') && !state.flags.ch1_rustComplete) {
+                    document.getElementById('ch1-iron1').onclick = function() { addToInventory('iron_half1'); this.style.display='none'; };
+                } else { document.getElementById('ch1-iron1').style.display='none'; }
+                
+                if(!state.inventory.includes('iron_half2') && !state.inventory.includes('iron_moon') && !state.flags.ch1_rustComplete) {
+                    document.getElementById('ch1-iron2').onclick = function() { addToInventory('iron_half2'); this.style.display='none'; };
+                } else { document.getElementById('ch1-iron2').style.display='none'; }
+
+                if(!state.inventory.includes('iron_gear') && !state.flags.ch1_clockFixed) {
+                    document.getElementById('ch1-gear').onclick = function() { addToInventory('iron_gear'); this.style.display='none'; };
+                } else { document.getElementById('ch1-gear').style.display='none'; }
+
+                if(!state.inventory.includes('match') && !state.inventory.includes('gold_key') && !state.inventory.includes('burned_book') && state.currentScene === 'ch1') {
+                    document.getElementById('ch1-match').onclick = function() { addToInventory('match'); this.style.display='none'; };
+                } else { document.getElementById('ch1-match').style.display='none'; }
+
+                const clock = document.getElementById('ch1-clock');
+                const worker = document.getElementById('ch1-worker');
+                const heart = document.getElementById('ch1-heart');
+                const pointers = document.getElementById('ch1-pointers');
+                const gearHole = document.getElementById('ch1-gear-hole');
+                const gearInserted = document.getElementById('ch1-gear-inserted');
+
+                if(state.flags.ch1_clockFixed) {
+                    gearHole.style.display = 'none';
+                    gearInserted.style.display = 'block';
+                    gearInserted.style.animation = 'spin 2s linear infinite';
+                    pointers.style.animation = 'spin 1s linear infinite';
+                    worker.querySelector('#ch1-worker-shadow').style.opacity = '0';
+                    worker.querySelector('#ch1-worker-statue').style.opacity = '1';
+                }
+                
+                if(state.flags.ch1_rustComplete && !state.flags.ch1_cubeTaken) {
+                    heart.style.display = 'block';
+                }
+
+                clock.onclick = () => {
+                    if(!state.flags.ch1_clockFixed) {
+                        if (state.selectedItem === 'iron_gear') {
+                            removeFromInventory('iron_gear');
+                            state.flags.ch1_clockFixed = true;
+                            showMsg("齿轮精准嵌入，劳动时间再次咬合，开始无情转动。");
+                            gearHole.style.display = 'none';
+                            gearInserted.style.display = 'block';
+                            gearInserted.style.animation = 'spin 2s linear infinite';
+                            pointers.style.animation = 'spin 1s linear infinite';
+                            worker.querySelector('#ch1-worker-shadow').style.opacity = '0';
+                            worker.querySelector('#ch1-worker-statue').style.opacity = '1';
+                            
+                            setTimeout(() => {
+                                showMsg("机器运转了，但他空洞的嘴巴似乎还在等待咽下什么...");
+                            }, 2500);
+                        } else {
+                            showMsg("表盘中间缺了一块齿轮。时间停滞了。");
+                        }
+                    } else {
+                        showMsg("时钟正在疯狂转动。");
+                    }
+                };
+
+                worker.onclick = () => {
+                    if(!state.flags.ch1_clockFixed) {
+                        showMsg("“时间不属于我们。我们只是它生锈的齿轮。”");
+                    } else if(!state.flags.ch1_rustComplete) {
+                        if (state.selectedItem === 'iron_moon') {
+                            removeFromInventory('iron_moon');
+                            state.flags.ch1_rustComplete = true;
+                            showMsg("他咽下了那枚铁做的月亮。彻底变成了物化的雕塑。");
+                            heart.style.display = 'block';
+                            heart.style.background = '#000';
+                        } else {
+                            showMsg("他张着空洞的嘴巴，似乎在等待咽下什么象征自然与浪漫，却又冰冷的东西...");
+                        }
+                    }
+                };
+
+                heart.onclick = (e) => {
+                    e.stopPropagation();
+                    if(state.flags.ch1_rustComplete && !state.flags.ch1_cubeTaken) {
+                        heart.style.display = 'none';
+                        const data = archiveData['black_cube1'];
+                        // 重构：直接调用统一存储的数据
+                        revealCube(
+                            'black_cube1', 
+                            data.title, 
+                            data.desc, 
+                            data.archiveTitle, 
+                            data.pages, 
+                            data.poem,
+                            () => {
+                                state.flags.ch1_cubeTaken = true;
+                                addToInventory('black_cube1');
+                                showMsg("雕塑裂开，取出了被封存的异化记忆。");
+                            }
+                        );
+                    }
+                };
+            }
+        },
+        'ch2': {
+            intro: {
+                title: '第二章：带血的X光片<br><span style="font-size:20px; color:#888; font-weight:normal;">—— 文学夸张与形象塑造</span>',
+                poem: '“她用毛线织起了楼房<br>为儿子织起了媳妇，<br>她佝偻得更低<br>肺管里毛绒让她不能呼吸......”'
+            },
+            html: `
+                <div id="scene-ch2" class="scene-root">
+                    <!-- 🎨 美工替换：第二章墙上的 X光片灯箱 -->
+                    <div id="ch2-lightbox" class="clickable" style="position:absolute; top:130px; left:335px; width:200px; height:300px; overflow:hidden;">
+                        <img src="x光.png" style="position:absolute; width:100%; height:100%; object-fit:cover;">
+                        <div id="ch2-xray-view" style="position:absolute; width:100%; height:100%; display:none;">
+                            <svg id="ch2-lungs-yarn" viewBox="0 0 100 100" style="position:absolute; width:100%; height:100%; z-index:1;"><path d="M30 40 Q40 50 35 70 Q45 60 30 50 M70 40 Q60 50 65 70 Q55 60 70 50" stroke="#111" stroke-width="2" fill="none"/></svg>
+                            <img src="x光片.png" style="position:absolute; width:calc(100% - 50px); height:55%; top:20%; left:25px; object-fit:contain; z-index:2; pointer-events:none;">
+                        </div>
+                    </div>
+                    
+                    <!-- 🎨 美工替换：第二章左侧的档案铁柜 -->
+                    <div id="ch2-cabinet" class="clickable" style="position:absolute; top:187px; left:73px; width:150px; height:375px; perspective: 800px;">
+                        <img src="柜子.png" style="position:absolute; width:100%; height:100%; object-fit:contain;">
+                        <div id="ch2-cabinet-door" style="position:absolute; top:0; left:0; width:100%; height:100%; background:transparent; transform-origin: left center; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); z-index:20;">
+                        </div>
+                    </div>
+
+                    <!-- 🎨 第二章桌面物品 -->
+                    <div id="ch2-tweezers" class="clickable" style="position:absolute; bottom:80px; left:200px; width:75px; height:75px;">
+                        ${itemsData['tweezers'].svg}
+                    </div>
+                    <div id="ch2-needle" class="clickable" style="position:absolute; bottom:70px; right:280px; width:80px; height:80px; transform: rotate(20deg);">
+                        ${itemsData['needle'].svg}
+                    </div>
+                    <div id="ch2-mini-house" class="clickable" style="position:absolute; bottom:40px; right:300px; width:160px; height:160px; display:none; z-index:15;">
+                        ${itemsData['mini_building'].svg}
+                    </div>
+
+                    <div class="clickable" onclick="if(state.flags.ch2_cubeTaken) loadScene('ch3'); else showMsg('必须提取出被物化的病痛（红方块）。')" style="position:absolute; right:20px; bottom:20px; color:#fff; font-size:24px;">▶</div>
+                </div>
+            `,
+            init: function() {
+                if(!state.inventory.includes('tweezers') && !state.flags.ch2_yarnExtracted) {
+                    document.getElementById('ch2-tweezers').onclick = function() { addToInventory('tweezers'); this.style.display='none'; };
+                } else { document.getElementById('ch2-tweezers').style.display='none'; }
+
+                if(!state.inventory.includes('needle') && !state.flags.ch2_houseBuilt) {
+                    document.getElementById('ch2-needle').onclick = function() { addToInventory('needle'); this.style.display='none'; };
+                } else { document.getElementById('ch2-needle').style.display='none'; }
+
+                const cabinet = document.getElementById('ch2-cabinet');
+                const lightbox = document.getElementById('ch2-lightbox');
+                const xrayView = document.getElementById('ch2-xray-view');
+                const lungsYarn = document.getElementById('ch2-lungs-yarn');
+                const house = document.getElementById('ch2-mini-house');
+                const door = document.getElementById('ch2-cabinet-door');
+                if(state.flags.ch2_xrayPlaced) {
+                    xrayView.style.display = 'block';
+                    if(state.flags.ch2_yarnExtracted) {
+                        lungsYarn.style.display = 'none';
+                        lightbox.querySelector('#ch2-xray-view img').src = 'x光片更新.png';
+                    }
+                }
+
+                cabinet.onclick = () => {
+                    if(window.ch2_animating) return;
+                    window.ch2_animating = true;
+                    
+                    new Audio('开柜门.mp3').play();
+                    door.style.transform = 'rotateY(-110deg)';
+                    
+                    setTimeout(() => {
+                        window.openCabinetView();
+                    }, 600);
+                };
+
+                lightbox.onclick = () => {
+                    if(!state.flags.ch2_xrayPlaced) {
+                        useItem('xray', () => {
+                            state.flags.ch2_xrayPlaced = true;
+                            xrayView.style.display = 'block';
+                            showMsg("透光显示，肺部的阴影并非病变，而是密密麻麻的'毛绒'。");
+                        }, "灯光刺眼，需要挂上什么东西。");
+                    } else if(!state.flags.ch2_yarnExtracted) {
+                        useItem('tweezers', () => {
+                            state.flags.ch2_yarnExtracted = true;
+                            lungsYarn.style.display = 'none';
+                            lightbox.querySelector('#ch2-xray-view img').src = 'x光片更新.png';
+                            addToInventory('lung_yarn');
+                            addToInventory('tweezers'); 
+                            showMsg("镊子穿透了平面，从X光片里夹出了实体毛线。");
+                        }, "隔着胶片拿不到，需要精细的工具。");
+                    }
+                };
+
+                let isShocking = false; 
+                
+                function triggerShockEffect(onComplete) {
+                    if (isShocking) return;
+                    isShocking = true;
+                    state.flags.ch2_doorOpened = true;
+                    
+                    const door = house.querySelector('.factory-door');
+                    if (door) door.style.transform = 'scaleX(0)'; 
+                    
+                    const sceneLayer = document.getElementById('scene-layer');
+                    sceneLayer.classList.add('shock-effect'); 
+                    
+                    showMsg("厂房门突然敞开！一股夹杂着粉尘与血腥的轰鸣震颤了世界...");
+                    
+                    setTimeout(() => {
+                        sceneLayer.classList.remove('shock-effect');
+                        isShocking = false;
+                        if (onComplete) onComplete();
+                    }, 1800);
+                }
+
+                function openRedCube() {
+                    const data = archiveData['red_cube'];
+                    // 重构：直接调用统一存储的数据
+                    revealCube(
+                        'red_cube', 
+                        data.title, 
+                        data.desc, 
+                        data.archiveTitle, 
+                        data.pages, 
+                        data.poem,
+                        () => {
+                            state.flags.ch2_cubeTaken = true;
+                            addToInventory('red_cube');
+                            showMsg("从敞开的厂房门中，飘出了沉甸甸的生命代价。");
+                        }
+                    );
+                }
+
+                const checkBuilding = setInterval(() => {
+                    if(state.currentScene === 'ch2' && !state.flags.ch2_houseBuilt && state.inventory.includes('mini_building')) {
+                        clearInterval(checkBuilding); 
+                        consumeItem('mini_building');
+                        state.flags.ch2_houseBuilt = true;
+                        
+                        house.style.display = 'block';
+                        house.style.opacity = '0';
+                        house.style.transform = 'scale(0.2)';
+                        house.style.transition = 'opacity 0.8s ease, transform 0.8s cubic-bezier(0.34, 1.2, 0.64, 1)';
+                        setTimeout(() => {
+                            house.style.opacity = '1';
+                            house.style.transform = 'scale(1)';
+                        }, 50);
+                        showMsg("绣花针牵引着毛线飞速穿梭，化作一座微缩的废弃厂房落在桌上。");
+                        
+                        window.ch2_autoOpenTimer = setTimeout(() => {
+                            if (!state.flags.ch2_doorOpened) {
+                                triggerShockEffect();
+                            }
+                        }, 2500);
+                    }
+                }, 1000);
+
+                if(state.flags.ch2_houseBuilt) {
+                    house.style.display = 'block';
+                    if (state.flags.ch2_doorOpened) {
+                        const door = house.querySelector('.factory-door');
+                        if (door) door.style.transform = 'scaleX(0)'; 
+                    }
+                }
+
+                house.onclick = () => {
+                    if (!state.flags.ch2_houseBuilt || state.flags.ch2_cubeTaken || isShocking) return;
+
+                    if (!state.flags.ch2_doorOpened) {
+                        clearTimeout(window.ch2_autoOpenTimer);
+                        triggerShockEffect(() => { openRedCube(); });
+                    } else {
+                        openRedCube();
+                    }
+                };
+            }
+        },
+        'ch3': {
+            intro: {
+                title: '第三章：缝隙里的稻田<br><span style="font-size:20px; color:#888; font-weight:normal;">—— 悬置的身份与漂浮的社会</span>',
+                poem: '“昨天我怎么也没想到<br>在东莞<br>我竟然遇见一小块稻田<br>青黄的稻穗<br>一直晃在<br>欣喜和悲痛的瞬间”'
+            },
+            html: `
+                <div id="scene-ch3" class="scene-root">
+                    
+                    <!-- 🎨 美工替换：第三章的火车票纸片贴图 -->
+                    <div id="ch3-ticket" class="clickable" style="position:absolute; top:110px; left:100px; width:144px; height:72px; transform:rotate(-15deg);">
+                        <img src="车票.png" style="width:100%; height:100%; object-fit:contain;">
+                    </div>
+                    
+                    <div style="position:absolute; bottom:0; width:100%; height:180px; background:transparent;"></div>
+                    
+                    <!-- 🎨 美工替换：第三章左侧桌上的电话机 -->
+                    <div id="ch3-phone" class="clickable" style="position:absolute; bottom:75px; left:150px; width:200px; height:160px;">
+                        <img src="电话.png" style="width:100%; height:100%; object-fit:contain;">
+                        <div id="ch3-tear" style="position:absolute; top:60px; left:155px; width:10px; height:15px; background:#4a90e2; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%; display:none;"></div>
+                    </div>
+
+                    <!-- 🎨 第三章桌面物品 -->
+                    <div id="ch3-cup" class="clickable" style="position:absolute; bottom:75px; left:350px; width:60px; height:100px;">
+                        ${itemsData['glass_cup'].svg}
+                    </div>
+                    
+                    <!-- 🎨 美工替换：第三章右侧桌上的花盆 -->
+                    <div id="ch3-pot" class="clickable" style="position:absolute; bottom:110px; right:180px; width:216px; height:162px;">
+                        <img id="ch3-pot-img" src="花盆.png" style="position:absolute; width:100%; height:100%; object-fit:contain;">
+                        <div id="ch3-mini-cube" style="position:absolute; bottom:80px; left:75px; width:30px; height:30px; display:none; z-index:10; pointer-events:none;">
+                            ${itemsData['white_cube'].svg}
+                        </div>
+                    </div>
+
+                    <div id="ch3-scissors" class="clickable" style="position:absolute; bottom:70px; right:90px; width:84px; height:84px;">
+                        ${itemsData['scissors'].svg}
+                    </div>
+
+                    <div class="clickable" onclick="if(state.flags.ch3_cubeTaken) loadScene('ch4'); else showMsg('必须提取出被悬置的乡愁（白方块）。')" style="position:absolute; right:20px; bottom:20px; color:#fff; font-size:24px;">▶</div>
+                </div>
+            `,
+            init: function() {
+                if(!state.inventory.includes('glass_cup') && !state.inventory.includes('cup_water') && !state.flags.ch3_watered) {
+                    document.getElementById('ch3-cup').onclick = function() { addToInventory('glass_cup'); this.style.display='none'; };
+                } else { document.getElementById('ch3-cup').style.display='none'; }
+
+                if(!state.inventory.includes('scissors') && !state.flags.ch3_cubeTaken) {
+                    document.getElementById('ch3-scissors').onclick = function() { addToInventory('scissors'); this.style.display='none'; };
+                } else { document.getElementById('ch3-scissors').style.display='none'; }
+
+                const phone = document.getElementById('ch3-phone');
+                const tear = document.getElementById('ch3-tear');
+                const pot = document.getElementById('ch3-pot');
+                const plant = document.getElementById('ch3-plant');
+
+                document.getElementById('ch3-ticket').onclick = () => {
+                    openModal(`<div style="text-align:center; padding:20px;"><img src="车票.png" style="max-width:100%; max-height:400px; object-fit:contain;"></div>`)
+                };
+                if(state.flags.ch3_dialed && !state.inventory.includes('cup_water') && !state.flags.ch3_watered) {
+                    tear.style.display = 'block';
+                    tear.style.animation = 'fall 2s infinite';
+                }
+                if(state.flags.ch3_grown) {
+                    document.getElementById('ch3-pot-img').src = '稻谷花盆.png';
+                    if(state.flags.ch3_cubeTaken) {
+                        document.getElementById('ch3-pot-img').src = '割过的花盆.png';
+                    }
+                }
+
+                phone.onclick = () => {
+                    if(state.flags.ch3_dialed) {
+                        if(checkItem('glass_cup')) {
+                            consumeItem('glass_cup');
+                            addToInventory('cup_water');
+                            showMsg("接住了晶莹的蓝色泪水。");
+                        } else {
+                            showMsg("听筒里传来流水线的履带声与呜咽声。");
+                        }
+                    } else {
+                        openModal(`
+                            <h3>拨打电话</h3>
+                            <div style="display:grid; grid-template-columns:repeat(3, 50px); gap:10px; justify-content:center;">
+                                <button onclick="typeDial(1)">1</button><button onclick="typeDial(2)">2</button><button onclick="typeDial(3)">3</button>
+                                <button onclick="typeDial(4)">4</button><button onclick="typeDial(5)">5</button><button onclick="typeDial(6)">6</button>
+                                <button onclick="typeDial(7)">7</button><button onclick="typeDial(8)">8</button><button onclick="typeDial(9)">9</button>
+                                <span></span><button onclick="typeDial(0)">0</button><span></span>
+                            </div>
+                            <div id="dial-display" style="margin-top:20px; font-size:24px; letter-spacing:5px; height:30px;"></div>
+                        `);
+                        window.dialStr = '';
+                    }
+                };
+
+                pot.onclick = () => {
+                    if(!state.flags.ch3_grown) {
+                        useItem('cup_water', () => {
+                            state.flags.ch3_watered = true;
+                            state.flags.ch3_grown = true;
+                            document.getElementById('ch3-pot-img').src = '稻谷花盆.png';
+                            showMsg("干涸的泥土里长出了虚幻的矮脚稻。");
+                        }, "泥土已经干涸很久了。");
+                    } else if(!state.flags.ch3_cubeTaken && !window.ch3_animating) {
+                        useItem('scissors', () => {
+                            new Audio('割稻谷.mp3').play();
+                            document.getElementById('ch3-pot-img').src = '割过的花盆.png';
+                            const miniCube = document.getElementById('ch3-mini-cube');
+                            miniCube.style.display = 'block';
+                            miniCube.classList.add('rising-cube');
+                            showMsg("剪开稻穗，剥落的谷壳中浮现出白色的结晶。");
+
+                            setTimeout(() => {
+                                miniCube.style.display = 'none';
+                                const data = archiveData['white_cube'];
+                                // 重构：直接调用统一存储的数据
+                                revealCube(
+                                    'white_cube', 
+                                    data.title, 
+                                    data.desc, 
+                                    data.archiveTitle, 
+                                    data.pages, 
+                                    data.poem,
+                                    () => {
+                                        state.flags.ch3_cubeTaken = true;
+                                        window.ch3_animating = false;
+                                        addToInventory('white_cube');
+                                    }
+                                );
+                            }, 1800);
+                        }, "徒手拔不出来，需要工具。");
+                    }
+                };
+            }
+        },
+        'ch4': {
+            intro: {
+                title: '第四章：猫头鹰的橱窗<br><span style="font-size:20px; color:#888; font-weight:normal;">—— 文化领导权与收编</span>',
+                poem: ''
+            },
+            html: `
+                <div id="scene-ch4" class="scene-root">
+                    
+                    <!-- 🎨 美工替换：第四章文化工业老板猫头鹰 -->
+                    <div id="ch4-owl" class="clickable" style="position:absolute; top:206px; left:235px; width:200px; height:300px;">
+                        <img src="猫头鹰男.png" style="width:100%; height:100%; object-fit:contain;">
+                        <div id="owl-hand" style="position:absolute; bottom:40px; left:-30px; width:50px; height:15px; border-radius:10px; display:none;"></div>
+                    </div>
+
+                    <div id="ch4-bubble" style="position:absolute; top:220px; left:310px; background:#000; border:3px solid #fff; border-radius:15px; padding:10px 15px; display:none; flex-direction:row; gap:8px; align-items:center; z-index:20; box-shadow: 0 5px 15px rgba(0,0,0,0.8);">
+                        <div style="position:absolute; bottom:-12px; left:20px; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:10px solid #fff;"></div>
+                        <div style="position:absolute; bottom:-7px; left:20px; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:10px solid #000; z-index:21;"></div>
+                        <div id="ch4-bubble-cubes" style="display:flex; gap:8px;"></div>
+                        <div id="ch4-bubble-text" style="color:#d4af37; font-size:16px; font-weight:bold; letter-spacing:2px; display:none; white-space:nowrap;"></div>
+                    </div>
+
+                    <div style="position:absolute; bottom:0; width:100%; height:200px; background:transparent;"></div>
+
+                    <div id="ch4-key-display" class="clickable" style="position:absolute; bottom:70px; left:240px; width:40px; height:40px; display:none; transform:rotate(-45deg);">
+                        ${itemsData['gold_key'].svg}
+                    </div>
+
+                    <!-- 🎨 美工替换：第四章收编/出书机器 -->
+                    <div id="ch4-machine" class="clickable" style="position:absolute; bottom:75px; left:340px; width:240px; height:180px;">
+                        <img src="机器.png" style="position:absolute; width:100%; height:100%; object-fit:contain;">
+                        <div id="ch4-book" style="position:absolute; bottom:5px; left:97px; width:50px; height:70px; display:none;">
+                            ${itemsData['poetry_book'].svg}
+                        </div>
+                    </div>
+                    
+                    <div class="clickable" onclick="if(state.flags.ch4_keyTaken) loadScene('epilogue'); else showMsg('必须完成收编的仪式才能离开。')" style="position:absolute; right:20px; bottom:20px; color:#fff; font-size:24px;">▶</div>
+                </div>
+            `,
+            init: function() {
+                const owl = document.getElementById('ch4-owl');
+                const owlHand = document.getElementById('owl-hand');
+                const machine = document.getElementById('ch4-machine');
+                const lever = null;
+                const book = document.getElementById('ch4-book');
+                const bubble = document.getElementById('ch4-bubble');
+                const bubbleCubes = document.getElementById('ch4-bubble-cubes');
+                const bubbleText = document.getElementById('ch4-bubble-text');
+                const keyDisplay = document.getElementById('ch4-key-display');
+
+                window.cubesFed = state.flags.ch4_bookMade ? 3 : (window.cubesFed || 0);
+
+                function updateBubble() {
+                    bubbleCubes.innerHTML = '';
+                    const needed = 3 - window.cubesFed;
+                    for(let i = 0; i < needed; i++) {
+                        bubbleCubes.innerHTML += '<div style="width:16px; height:16px; border:2px solid #fff; box-shadow: 0 0 5px #fff;"></div>';
+                    }
+                }
+
+                let bubbleTimer;
+                function showBubble() {
+                    if (window.cubesFed >= 3) return;
+                    bubbleCubes.style.display = 'flex';
+                    bubbleText.style.display = 'none'; 
+                    updateBubble();
+                    bubble.style.display = 'flex';
+                    clearTimeout(bubbleTimer);
+                    bubbleTimer = setTimeout(() => {
+                        bubble.style.display = 'none';
+                    }, 3000);
+                }
+
+                function showTextBubble(msg) {
+                    bubbleCubes.style.display = 'none';
+                    bubbleText.style.display = 'block'; 
+                    bubbleText.innerHTML = msg;
+                    bubble.style.display = 'flex';
+                    clearTimeout(bubbleTimer);
+                    bubbleTimer = setTimeout(() => {
+                        bubble.style.display = 'none';
+                    }, 4000);
+                }
+
+                if(state.flags.ch4_bookMade && !state.flags.ch4_bookTaken) {
+                    book.style.display = 'block';
+                } else if(!state.flags.ch4_bookMade) {
+                    owlHand.style.display = 'block';
+                }
+
+                if(state.flags.ch4_bookTaken && !state.flags.ch4_keyTaken) {
+                    keyDisplay.style.display = 'block';
+                }
+
+                owl.onclick = () => {
+                    if(!state.flags.ch4_bookMade) {
+                        if(checkItem('black_cube1') || checkItem('red_cube') || checkItem('white_cube')) {
+                            const item = state.selectedItem;
+                            consumeItem(item);
+                            window.cubesFed++;
+                            showMsg("猫头鹰男将方块丢进了机器。");
+                            if(window.cubesFed >= 3) {
+                                owlHand.style.display = 'none';
+                                bubble.style.display = 'none';
+                                showMsg("原料充足。点击机器吧。");
+                            } else {
+                                showBubble();
+                            }
+                        } else {
+                            showMsg("\u201c把你的方块交给我。我会让它变得有价值。\u201d");
+                            showBubble();
+                        }
+                    } else if(state.flags.ch4_bookMade && !state.flags.ch4_bookTaken) {
+                        showMsg("\u201c看，苦难经过抛光，卖相多好。\u201d");
+                        showTextBubble("恭喜你获得神秘大奖！");
+                    } else {
+                        showMsg("“交易完成。门在那里。”");
+                    }
+                };
+
+                machine.onclick = (e) => {
+                    e.stopPropagation();
+                    if(window.cubesFed >= 3 && !state.flags.ch4_bookMade) {
+                        showMsg("机器轰鸣。苦难被洗净、收编，化为闪闪发光的出版物。");
+                        new Audio('轰鸣.mp3').play();
+                        setTimeout(() => {
+                            state.flags.ch4_bookMade = true;
+                            book.style.display = 'block';
+                            book.classList.add('pop-in');
+                        }, 1500);
+                    } else if(window.cubesFed < 3) {
+                        showMsg("原料不足。还需要更多方块。");
+                    }
+                };
+
+                book.onclick = (e) => {
+                    e.stopPropagation();
+                    if(!state.flags.ch4_bookTaken) {
+                        book.style.display = 'none';
+                        revealCube(
+                            'poetry_book', 
+                            '【 草根诗集 】', 
+                            '苦难被烫上了金边<br>变成了橱窗里闪闪发光的商品。', 
+                            '', 
+                            [], 
+                            '', 
+                            () => {
+                                state.flags.ch4_bookTaken = true;
+                                addToInventory('poetry_book');
+                                showMsg("苦难被烫上金边成了商品。猫头鹰男留下了一把金钥匙。");
+                                keyDisplay.style.display = 'block';
+                                showTextBubble("恭喜你获得神秘大奖！");
+                            }
+                        );
+                    }
+                };
+
+                keyDisplay.onclick = (e) => {
+                    e.stopPropagation();
+                    if(!state.flags.ch4_keyTaken) {
+                        keyDisplay.style.display = 'none';
+                        revealCube(
+                            'gold_key', 
+                            '【 金钥匙 】', 
+                            '资本的馈赠<br>一把通往虚假大团圆的门禁。', 
+                            '', 
+                            [], 
+                            '', 
+                            () => {
+                                state.flags.ch4_keyTaken = true;
+                                addToInventory('gold_key');
+                                showMsg("获得了通往虚假大团圆的金钥匙。门在那里。");
+                            }
+                        );
+                    }
+                };
+            }
+        },
+        'epilogue': {
+            html: `
+                <div id="scene-epilogue" class="scene-root" style="display:flex; justify-content:center; align-items:center;">
+                    
+                    <!-- 🎨 美工替换：虚假的颁奖结局大图 -->
+                    <div id="fake-ending-scene" style="position:absolute; top:0; left:0; width:100%; height:100%; display:none; flex-direction:column; justify-content:flex-start; align-items:center; z-index: 5; cursor:pointer;">
+                    </div>
+
+                    <!-- 🎨 美工替换：真结局暗黑牢房背景 -->
+                    <div id="prison-scene" style="position:absolute; top:0; left:0; width:100%; height:100%; display:none; flex-direction:column; justify-content:center; align-items:center; z-index: 6; background-color:#050505; background-image:url('结尾监狱.png'); background-size:cover; background-position:center;">
+                        
+                        <div id="prison-bubble" class="clickable pop-in" style="position:absolute; top:205px; left:520px; background:#fff; color:#000; padding:15px 25px; border-radius:15px; border:3px solid #333; font-weight:bold; letter-spacing:2px; font-size:16px; z-index:10; display:none; box-shadow:0 10px 20px rgba(0,0,0,0.8);">
+                            这才是真实的诗狱。<br><span style="font-size:12px; color:#666; font-weight:normal; margin-top:5px; display:inline-block;">( 点击气泡聆听讲解 )</span>
+                            <div style="position:absolute; bottom:-12px; left:30px; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:10px solid #fff;"></div>
+                        </div>
+                        
+                        <div id="prison-center-book" class="clickable" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0); transition: transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); display:none; z-index:20; width:60px; height:80px; box-shadow:0 0 30px rgba(255,255,255,0.2);"></div>
+                    </div>
+
+                    <!-- 🎨 美工替换：终章这扇坚硬的门 -->
+                    <div id="epi-door" class="clickable" style="position:relative; width:200px; height:350px; background:#8b0000; border:10px solid #d4af37; border-radius:100px 100px 0 0; box-shadow:0 0 50px rgba(212,175,55,0.3); z-index: 10;">
+                        <div style="position:absolute; top:40%; left:20px; width:160px; height:10px; background:#d4af37;"></div>
+                        <div style="position:absolute; top:60%; left:20px; width:160px; height:10px; background:#d4af37;"></div>
+                        <div style="position:absolute; top:50%; right:20px; width:20px; height:30px; background:#000; border-radius:10px;"></div>
+                    </div>
+                    
+                    <div id="epi-text" style="position:absolute; width:100%; text-align:center; top:40%; color:#fff; font-size:24px; letter-spacing:5px; opacity:0; transition:all 1s; pointer-events:none; z-index: 20;"></div>
+                </div>
+            `,
+            init: function() {
+                const door = document.getElementById('epi-door');
+                const text = document.getElementById('epi-text');
+                const fakeScene = document.getElementById('fake-ending-scene');
+                
+                door.onclick = () => {
+                    if(checkItem('match')) {
+                        showMsg("火柴点不燃这扇坚固的虚假之门。也许该烧掉别的什么伪装？");
+                    } else if(checkItem('gold_key')) {
+                        consumeItem('gold_key');
+                        door.style.transform = 'perspective(500px) rotateY(-45deg)';
+                        door.style.transformOrigin = 'left';
+                        door.style.transition = 'transform 2s';
+                        document.getElementById('inventory-layer').style.display = 'none';
+                        document.getElementById('scene-layer').style.width = '900px';
+
+                        if (state.inventory.includes('burned_book')) {
+                            setTimeout(() => {
+                                door.style.display = 'none';
+                                document.getElementById('scene-layer').innerHTML += `
+                                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index: 10; cursor:pointer;" onclick="location.reload()" title="点击重启轮回">
+                                        <svg viewBox="0 0 100 50" width="200" height="100" style="filter:drop-shadow(0 0 20px rgba(255,255,255,0.8));">
+                                            <path d="M0 25 Q50 -10 100 25 Q50 60 0 25" fill="none" stroke="#fff" stroke-width="2"/>
+                                            <circle cx="50" cy="25" r="15" fill="#fff"/>
+                                            <circle cx="50" cy="25" r="5" fill="#000"/>
+                                        </svg>
+                                    </div>
+                                `;
+                            }, 2000);
+                        } else {
+                            if (state.flags.epilogue_rejected) {
+                                setTimeout(() => {
+                                    const prisonScene = document.getElementById('prison-scene');
+                                    const prisonBubble = document.getElementById('prison-bubble');
+                                    
+                                    document.getElementById('scene-layer').style.width = '800px';
+                                    document.getElementById('inventory-layer').style.display = 'flex';
+                                    
+                                    door.style.display = 'none';
+                                    prisonScene.style.opacity = 0;
+                                    prisonScene.style.display = 'flex';
+                                    prisonScene.style.transition = 'opacity 1s ease';
+                                    
+                                    setTimeout(() => { prisonScene.style.opacity = 1; }, 50);
+                                    
+                                    setTimeout(() => {
+                                        prisonBubble.style.display = 'block';
+                                    }, 1000);
+                                    
+                                    prisonBubble.onclick = () => {
+                                        const knowPanel = document.getElementById('knowledge-panel');
+                                        const knowTitleText = document.getElementById('knowledge-title-text');
+                                        const knowText = document.getElementById('knowledge-text');
+                                        const closeKnowBtn = document.getElementById('close-knowledge-btn');
+                                        const btnPrev = document.getElementById('know-prev');
+                                        const btnNext = document.getElementById('know-next');
+                                        const pageInd = document.getElementById('know-page-indicator');
+                                        
+                                        const pages = [
+                                            `<div style="display: flex; gap: 40px; align-items: flex-start;">
+                                                <div style="flex: 1; padding-right: 40px; border-right: 1px solid #333; color: #aaa;">
+                                                    “总而言之，复制技术把所复制的东西从传统领域中解脱了出来。由于它制作了许许多多的复制品，因而它就用众多的复制物取代了独一无二的存在，由于它使复制品能为接受者在其自身的环境中去加以欣赏，因而它就赋予了所复制的对象以现实的活力。”<br><br><span style="color:#777;">——[德]本雅明《机械复制时代的艺术作品》</span>
+                                                </div>
+                                                <div style="flex: 1; color: #e0e0e0;">
+                                                    机械复制技术使艺术品脱离对原作的依赖，打破独一无二的特权，让原本只属于少数人的艺术，进入大众可及的范围。<br><br>打工诗歌从手抄、小众刊物，通过印刷、网络、公众号、诗集大量复制传播，大众都能读到。此时，没有话语权的普通人也能把经验变成可传播、可留存的文化文本。
+                                                </div>
+                                            </div>`,
+                                            
+                                            `<strong style="display:block; margin-bottom:20px; font-size:18px; color:#fff;">一、市民社会：文化领导权运作的场所</strong>
+                                            <div style="display: flex; gap: 40px; align-items: flex-start;">
+                                                <div style="flex: 1; padding-right: 40px; border-right: 1px solid #333; color: #aaa;">
+                                                    “我们目前可以确定两个上层建筑‘阶层’:一个可称作‘市民社会’，即通常称作‘私人的’组织的总和，另一个是‘政治社会’或‘国家’。”<br><br>“知识分子便是统治集团的‘代理人’，所行使的是社会霸权和政治统治的下级职能。”<br><br><span style="color:#777;">——[意]葛兰西 《狱中札记》</span>
+                                                </div>
+                                                <div style="flex: 1; color: #e0e0e0;">
+                                                    现代国家是由政治社会（强制力量如警察、法庭、军队）和市民社会（包括不限于文化、教育、舆论、传媒、家庭、习俗、常识）共同运转的。<br><br>打工诗歌表现出的批判成分并没有在明面上被禁止，而是被市民社会吸纳，包装成励志故事、草根成功、个人奋斗、文化审美，让批判变得可接受、可消费、去威胁性的文化产品。
+                                                </div>
+                                            </div>`,
+                                            
+                                            `<strong style="display:block; margin-bottom:20px; font-size:18px; color:#fff;">二、主流文化对于批判的收编</strong>
+                                            <div style="display: flex; gap: 40px; align-items: flex-start;">
+                                                <div style="flex: 1; padding-right: 40px; border-right: 1px solid #333; color: #aaa;">
+                                                    “我们自己的研究所依据的方法论标准如下：一个社会集团的霸权地位表现在以下两个方面，即‘统治’和‘智识与道德的领导权’。一个社会集团统治着它往往会‘清除’或者甚至以武力来制服的敌对集团，他领导着同类的和结盟的集团。”<br><br>“温和派是以什么形式和通过什么手段成功地建立了他们的智识、道德和政治霸权机构的呢?是那些可以称得上是‘开明的’形式和手段。”<br><br><span style="color:#777;">——[意]葛兰西 《狱中札记》</span>
+                                                </div>
+                                                <div style="flex: 1; color: #e0e0e0;">
+                                                    葛兰西认为，一个社会集团的霸权，表现在两个方面：“统治”和“精神与道德的领导权”。统治具有强制性，而领导权则倾向于同意、认同、自愿接受。<br><br>打工诗歌的批判被这套“自愿赞同”的体系收编、软化、改写。
+                                                </div>
+                                            </div>`,
+                                            
+                                            `<strong style="display:block; margin-bottom:20px; font-size:18px; color:#fff;">三、常识、日常观念被统治阶级“自然化”，有机知识分子负责传播维护</strong>
+                                            <div style="display: flex; gap: 40px; align-items: flex-start;">
+                                                <div style="flex: 1; padding-right: 40px; border-right: 1px solid #333; color: #aaa;">
+                                                    葛兰西认为，统治阶级把自己的特殊利益包装成“普通利益”“正常生活”或者“理所应当”，从而使被统治阶级在日常观念、常识中，自愿接受这种秩序，认为是“自然如此”。<br><br>同时，知识分子作为整个社会观念的生产者、传播者，把统治阶级的世界观，变成大众的“常识”。
+                                                </div>
+                                                <div style="flex: 1; color: #e0e0e0;">
+                                                    媒体、评论、文学界把打工诗人塑造成“逆袭榜样”“草根诗人”等等，用个人成功叙事替代群体处境的批判，背后也是文化领导权的运作逻辑。
+                                                </div>
+                                            </div>`
+                                        ];
+                                        
+                                        let curPage = 0;
+                                        function renderP() {
+                                            knowTitleText.innerHTML = '诗狱与无声的呐喊';
+                                            knowText.innerHTML = pages[curPage];
+                                            pageInd.innerText = `- ${curPage + 1} / ${pages.length} -`;
+                                            btnPrev.style.display = curPage > 0 ? 'block' : 'none';
+                                            btnNext.style.display = curPage < pages.length - 1 ? 'block' : 'none';
+                                        }
+                                        
+                                        renderP();
+                                        knowPanel.style.display = 'flex';
+                                        void knowPanel.offsetWidth;
+                                        knowPanel.style.opacity = 1;
+                                        
+                                        btnPrev.onclick = () => { if (curPage > 0) { curPage--; renderP(); } };
+                                        btnNext.onclick = () => { if (curPage < pages.length - 1) { curPage++; renderP(); } };
+                                        
+                                        closeKnowBtn.onclick = () => {
+                                            knowPanel.style.opacity = 0;
+                                            setTimeout(() => { 
+                                                knowPanel.style.display = 'none'; 
+                                                
+                                                prisonBubble.innerHTML = "真实的诗集需要你自己来解锁。<div style='position:absolute; bottom:-12px; left:30px; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:10px solid #fff;'></div><div style='position:absolute; bottom:-16px; left:28px; width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent; border-top:12px solid #333; z-index:-1;'></div>";
+                                                prisonBubble.style.top = '205px';
+                                                prisonBubble.style.left = '520px';
+                                                prisonBubble.style.right = 'auto';
+                                                prisonBubble.style.pointerEvents = 'none';
+                                                prisonBubble.style.cursor = 'default';
+                                                const centerBook = document.getElementById('prison-center-book');
+                                                
+                                                function triggerTrueEndingFromPrison() {
+                                                    setTimeout(() => {
+                                                        const prisonScene = document.getElementById('prison-scene');
+                                                        prisonScene.style.opacity = 0;
+                                                        setTimeout(() => {
+                                                            prisonScene.style.display = 'none';
+                                                            document.getElementById('scene-layer').style.width = '900px';
+                                                            document.getElementById('inventory-layer').style.display = 'none';
+                                                            
+                                                            const sceneLayer = document.getElementById('scene-layer');
+                                                            sceneLayer.innerHTML = `<div style="position:absolute; top:0; left:0; width:100%; height:100%; cursor:pointer; z-index:999;" onclick="location.reload()"><img src="最后的眼睛.png" style="width:100%; height:100%; object-fit:cover;"></div>`;
+                                                        }, 1000);
+                                                    }, 2000);
+                                                }
+
+                                                if (state.inventory.includes('poetry_book')) {
+                                                    consumeItem('poetry_book');
+                                                    centerBook.innerHTML = itemsData['poetry_book'].svg;
+                                                    centerBook.style.display = 'block';
+                                                    void centerBook.offsetWidth; 
+                                                    centerBook.style.transform = 'translate(-50%, -50%) scale(2.5)';
+                                                    
+                                                    centerBook.onclick = () => {
+                                                        if (checkItem('match')) {
+                                                            consumeItem('match');
+                                                            showMsg("火柴擦亮，资本的烫金包装在火光中灰飞烟灭...");
+                                                            centerBook.innerHTML = itemsData['burned_book'].svg;
+                                                            triggerTrueEndingFromPrison();
+                                                        } else {
+                                                            showMsg("需要一点真实的火光来烧毁这层伪装。");
+                                                        }
+                                                    };
+                                                } else if (state.inventory.includes('burned_book')) {
+                                                    consumeItem('burned_book');
+                                                    centerBook.innerHTML = itemsData['burned_book'].svg;
+                                                    centerBook.style.display = 'block';
+                                                    void centerBook.offsetWidth;
+                                                    centerBook.style.transform = 'translate(-50%, -50%) scale(2.5)';
+                                                    triggerTrueEndingFromPrison();
+                                                }
+
+                                            }, 800);
+                                        };
+                                    };
+                                }, 2000);
+                            } else {
+                                setTimeout(() => {
+                                    fakeScene.style.transition = 'opacity 0.8s';
+                                    fakeScene.style.opacity = 1;
+                                    fakeScene.style.display = 'flex';
+                                    door.style.display = 'none';
+                                    text.style.opacity = 0;
+                                    text.innerHTML = '';
+
+                                    const clickLayer = document.createElement('div');
+                                    clickLayer.style.position = 'absolute';
+                                    clickLayer.style.top = '0';
+                                    clickLayer.style.left = '0';
+                                    clickLayer.style.width = '100%';
+                                    clickLayer.style.height = '100%';
+                                    clickLayer.style.zIndex = '50';
+                                    clickLayer.style.cursor = 'pointer';
+                                    document.getElementById('scene-epilogue').appendChild(clickLayer);
+
+                                    let page = 1;
+
+                                    clickLayer.onclick = () => {
+                                        if (page === 1) {
+                                            fakeScene.style.opacity = 0;
+                                            setTimeout(() => {
+                                                fakeScene.style.display = 'none';
+                                                text.style.top = '45%';
+                                                text.innerHTML = "<span style='font-size:48px; font-weight:bold; letter-spacing:12px; text-shadow:0 0 25px rgba(255,255,255,0.8);'>刚刚呈现的结局是真实的吗？</span>";
+                                                text.style.opacity = 1;
+                                                page = 2;
+                                            }, 800);
+                                        } else if (page === 2) {
+                                            clickLayer.remove(); 
+                                            text.style.opacity = 0;
+                                            setTimeout(() => {
+                                                text.style.top = '35%';
+                                                text.innerHTML = "<span style='font-size:48px; font-weight:bold; letter-spacing:12px; text-shadow:0 0 25px rgba(255,255,255,0.8);'>刚刚呈现的结局是真实的吗？</span><br><br><div id='retry-btn' class='close-knowledge' style='position:relative; bottom:auto; display:inline-block; margin-top:60px; pointer-events:auto; color:#ccc; border-color:#ccc; text-shadow:none; font-size:18px;'>拒 绝 (返回重新开门)</div>";
+                                                text.style.opacity = 1;
+
+                                                setTimeout(() => {
+                                                    const retryBtn = document.getElementById('retry-btn');
+                                                    retryBtn.onmouseover = () => { 
+                                                        retryBtn.style.color = '#fff'; 
+                                                        retryBtn.style.borderColor = '#fff'; 
+                                                        retryBtn.style.background = 'rgba(255,255,255,0.1)'; 
+                                                    };
+                                                    retryBtn.onmouseout = () => { 
+                                                        retryBtn.style.color = '#ccc'; 
+                                                        retryBtn.style.borderColor = '#ccc'; 
+                                                        retryBtn.style.background = 'transparent'; 
+                                                    };
+
+                                                    retryBtn.onclick = () => {
+                                                        state.flags.epilogue_rejected = true; 
+                                                        
+                                                        text.style.opacity = 0;
+                                                        text.style.pointerEvents = 'none';
+                                                        text.style.top = '40%';
+                                                        
+                                                        door.style.display = 'block';
+                                                        door.style.transform = 'none';
+                                                        document.getElementById('scene-layer').style.width = '800px';
+                                                        document.getElementById('inventory-layer').style.display = 'flex';
+                                                        
+                                                        addToInventory('gold_key');
+                                                        
+                                                        setTimeout(() => { text.innerHTML = ''; }, 1000);
+                                                    };
+                                                }, 0);
+                                            }, 800);
+                                        }
+                                    };
+                                }, 2000);
+                            }
+                        }
+                    } else if(checkItem('poetry_book')) {
+                        showMsg("这就是那本粉饰苦难的诗集。");
+                    } else if(checkItem('burned_book')) {
+                        showMsg("灰烬中露出了打工诗歌粗糙而真实的词语。");
+                    } else {
+                        showMsg("门锁着，需要用特定的钥匙打开。");
+                    }
+                };
+            }
+        }
+    };
+
+    window.typeDial = function(num) {
+        window.dialStr += num;
+        document.getElementById('dial-display').innerText = window.dialStr;
+        if(window.dialStr.length >= 4) {
+            setTimeout(() => {
+                if(window.dialStr === '2026') {
+                    closeModal();
+                state.flags.ch3_dialed = true;
+                new Audio('哭.mp3').play();
+                    const tear = document.getElementById('ch3-tear');
+                    if(tear) {
+                        tear.style.display = 'block';
+                        tear.style.animation = 'fall 2s infinite';
+                    }
+                } else {
+                    window.dialStr = '';
+                    document.getElementById('dial-display').innerText = '空号';
+                    setTimeout(() => { document.getElementById('dial-display').innerText = ''; }, 1000);
+                }
+            }, 500);
+        }
+    };
+
+    window.openCabinetView = function() {
+        let interiorHtml = `
+            <div style="box-sizing: border-box; width: 520px; height: 360px; background: #1a1a1a; border: 8px solid #2a2a2a; position: relative; padding: 20px; box-shadow: inset 0 0 80px #000; margin: 0 auto;">
+                <h3 style="color:#777; margin-top:0; letter-spacing: 5px; text-align:center; border-bottom: 2px solid #333; padding-bottom: 10px;">书柜内部</h3>
+                
+                <div style="position:absolute; top:180px; left:0; width:100%; height:10px; background:#222; border-top: 2px solid #444; border-bottom: 2px solid #000;"></div>
+
+                <div class="clickable" onclick="showCabinetBook()" style="position:absolute; top:45px; left:60px; width:45px; height:130px; background:#8b3a3a; border-left:4px solid #a55; border-radius:3px; display:flex; justify-content:center; align-items:center; box-shadow: -5px 0 10px rgba(0,0,0,0.5);">
+                    <span style="color:#fff; writing-mode:vertical-rl; font-size:12px; letter-spacing:4px;">拼搏梦</span>
+                </div>
+                <div style="position:absolute; top:55px; left:110px; width:35px; height:120px; background:#4a5d4e; border-left:4px solid #6b7d6f; border-radius:3px;"></div>
+                <div style="position:absolute; top:65px; left:150px; width:30px; height:110px; background:#3b4d5e; border-left:4px solid #5b6d7e; border-radius:3px; transform: rotate(10deg); transform-origin: bottom left;"></div>
+
+                <div class="clickable" onclick="showCabinetCD()" style="position:absolute; bottom:30px; left:80px; width:100px; height:100px; box-shadow: 0 10px 10px rgba(0,0,0,0.5); border-radius:50%;">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="48" fill="url(#cd-grad)" stroke="#888" stroke-width="2"/>
+                        <circle cx="50" cy="50" r="15" fill="#1a1a1a"/>
+                        <path d="M50 5 A45 45 0 0 1 95 50" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="4"/>
+                        <path d="M50 95 A45 45 0 0 1 5 50" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="4"/>
+                        <defs>
+                            <linearGradient id="cd-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#ddd" />
+                                <stop offset="50%" stop-color="#999" />
+                                <stop offset="100%" stop-color="#fff" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+        `;
+
+        if (!state.inventory.includes('xray') && !state.flags.ch2_xrayPlaced) {
+            interiorHtml += `
+                <div id="cab-inner-xray" class="clickable" onclick="takeXrayFromCabinet()" style="position:absolute; top:25px; right:40px; width:130px; height:150px; background:#050505; border:2px solid #333; box-shadow: 5px 5px 15px rgba(0,0,0,0.8); display:flex; flex-direction:column; justify-content:center; align-items:center; transform:rotate(8deg);">
+                    <div style="width: 100px; height: 100px; opacity:0.3; margin-bottom: 5px;">${itemsData['xray'].svg}</div>
+                    <div style="color:#aaa; border:1px solid #555; padding:4px 8px; font-size:12px;">病理档案：伍春兰</div>
+                </div>
+            `;
+        } else {
+             interiorHtml += `
+                <div style="position:absolute; top:25px; right:40px; width:130px; height:150px; display:flex; justify-content:center; align-items:center; transform:rotate(8deg);">
+                    <div style="color:#444; font-size:14px; letter-spacing:2px; border: 1px dashed #333; padding: 20px;">（空缺的档案位置）</div>
+                </div>
+            `;
+        }
+
+        interiorHtml += `</div>`;
+        
+        openModal(interiorHtml, () => {
+            const door = document.getElementById('ch2-cabinet-door');
+            door.style.transform = 'rotateY(0deg)';
+            setTimeout(() => { window.ch2_animating = false; }, 600);
+        });
+    };
+
+    window.showCabinetBook = function() {
+        const content = `
+            <div style="box-sizing: border-box; background:#8b3a3a; padding:30px; color:#fff; width:280px; height:380px; display:flex; justify-content:center; align-items:center; flex-direction:column; border: 8px solid #d4af37; box-shadow:0 0 30px rgba(0,0,0,0.8); position:relative; margin: 0 auto;">
+                <div style="position:absolute; top:15px; left:15px; right:15px; bottom:15px; border:2px solid rgba(255,255,255,0.3);"></div>
+                <h1 style="font-family: 'ZCOOL QingKe HuangYou', cursive; font-size:42px; letter-spacing:6px; line-height:1.4; text-shadow:2px 2px 5px #000; margin-bottom:20px; text-align:center;">我的拼搏<br>打工梦</h1>
+                <p style="font-size:14px; color:#ccc; letter-spacing:2px; font-style:italic; padding: 0 10px; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 15px;">“成功学”的糖衣炮弹</p>
+            </div>
+            <div class="close-knowledge" style="position:relative; bottom:auto; display:inline-block; margin-top:20px;" onclick="openCabinetView()">放回原处</div>
+        `;
+        document.getElementById('modal-body').innerHTML = content;
+    };
+
+    window.showCabinetCD = function() {
+        const content = `
+            <div style="box-sizing: border-box; width:320px; height:320px; border-radius:50%; background:linear-gradient(135deg, #eee, #999, #fff, #bbb); display:flex; justify-content:center; align-items:center; border: 2px solid #aaa; box-shadow: 0 0 30px rgba(255,255,255,0.3); margin: 0 auto;">
+                <div style="box-sizing: border-box; background:#fff; width:300px; height:300px; border-radius:50%; display:flex; justify-content:center; align-items:center; flex-direction:column; position:relative; overflow:hidden;">
+                    <div style="position:absolute; top:0; left:0; width:100%; height:100%; background: conic-gradient(from 0deg, transparent, rgba(255,0,0,0.1), rgba(0,255,0,0.1), rgba(0,0,255,0.1), transparent); pointer-events:none;"></div>
+                    
+                    <div style="width:40px; height:40px; border-radius:50%; background:#222; border:4px solid #ccc; margin-bottom:25px; z-index:2; box-shadow: inset 0 0 10px #000;"></div>
+                    <h2 style="color:#222; font-family: 'Noto Serif SC', serif; font-size:24px; letter-spacing:4px; z-index:2; font-weight:bold; margin: 0;">挣得工资寄回家</h2>
+                    <p style="color:#666; font-size:14px; letter-spacing:2px; z-index:2; margin-top:15px; border-top: 1px solid #ccc; padding-top: 10px;">流水线金曲怀旧系列</p>
+                </div>
+            </div>
+            <div class="close-knowledge" style="position:relative; bottom:auto; display:inline-block; margin-top:20px;" onclick="openCabinetView()">放回原处</div>
+        `;
+        document.getElementById('modal-body').innerHTML = content;
+    };
+
+    window.takeXrayFromCabinet = function() {
+        const xrayInner = document.getElementById('cab-inner-xray');
+        if (xrayInner) {
+            xrayInner.style.transition = 'transform 0.5s, opacity 0.5s';
+            xrayInner.style.transform = 'translateY(-50px) scale(1.1)';
+            xrayInner.style.opacity = '0';
+            
+            setTimeout(() => {
+                addToInventory('xray');
+                showMsg("找到了伍春兰的病理档案（X光片）。");
+                window.openCabinetView();
+            }, 500);
+        }
+    };
+
+    loadScene('title');
+
+    // 背景音乐：用户首次交互后自动播放
+    const bgm = new Audio('背景音.mp3');
+    bgm.loop = true;
+    bgm.volume = 0.3;
+    let bgmStarted = false;
+    const startBgm = () => {
+        if (!bgmStarted) { bgm.play(); bgmStarted = true; }
+        document.removeEventListener('click', startBgm);
+    };
+    document.addEventListener('click', startBgm);
+
+    window.toggleBgm = function() {
+        if (bgm.paused) {
+            bgm.play();
+            document.getElementById('bgm-icon-on').style.display = 'block';
+            document.getElementById('bgm-icon-off').style.display = 'none';
+        } else {
+            bgm.pause();
+            document.getElementById('bgm-icon-on').style.display = 'none';
+            document.getElementById('bgm-icon-off').style.display = 'block';
+        }
+    };
+
+    function scaleGame() {
+        const container = document.getElementById('game-container');
+        const scaleX = window.innerWidth / 900;
+        const scaleY = window.innerHeight / 600;
+        const scale = Math.min(scaleX, scaleY);
+        container.style.transform = `scale(${scale})`;
+    }
+    scaleGame();
+    window.addEventListener('resize', scaleGame);
+    window.addEventListener('orientationchange', () => setTimeout(scaleGame, 300));
+
+</script>
+</body>
+</html>
