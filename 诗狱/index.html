@@ -679,12 +679,12 @@
         'iron_gear': { name: '生锈的齿轮', svg: '<img src="生锈的齿轮.png" style="width:100%; height:100%; object-fit:contain;">' },
         'iron_moon': { name: '铁弯月', svg: '<img src="铁月亮.png" style="width:100%; height:100%; object-fit:contain;">' },
         'match': { name: '火柴', svg: '<svg viewBox="0 0 100 100"><rect x="45" y="20" width="10" height="60" fill="#d2b48c"/><circle cx="50" cy="20" r="8" fill="#8b0000"/></svg>' },
-        'black_cube1': { name: '黑方块', svg: '<svg viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" fill="#111" stroke="white" stroke-width="4"/></svg>' },
-        'red_cube': { name: '红方块', svg: '<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#8b0000" stroke="#4a0000" stroke-width="2"/><rect x="30" y="30" width="40" height="40" fill="#cc0000" opacity="0.6"/></svg>' },
+        'black_cube1': { name: '黑方块', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" fill="#111" stroke="white" stroke-width="4"/></svg>' },
+        'red_cube': { name: '红方块', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#8b0000" stroke="#4a0000" stroke-width="2"/><rect x="30" y="30" width="40" height="40" fill="#cc0000" opacity="0.6"/></svg>' },
         'glass_cup': { name: '玻璃空杯', svg: '<img src="杯子.png" style="width:100%; height:100%; object-fit:contain;">' },
         'cup_water': { name: '装满蓝色眼泪的杯子', svg: '<img src="水杯有水.png" style="width:100%; height:100%; object-fit:contain;">' },
         'scissors': { name: '生锈的剪刀', svg: '<img src="剪刀.png" style="width:100%; height:100%; object-fit:contain;">' },
-        'white_cube': { name: '白方块', svg: '<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#f0f0f0" stroke="#ccc" stroke-width="2"/><rect x="30" y="30" width="40" height="40" fill="#fff" opacity="0.5"/></svg>' },
+        'white_cube': { name: '白方块', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#f0f0f0" stroke="#ccc" stroke-width="2"/><rect x="30" y="30" width="40" height="40" fill="#fff" opacity="0.5"/></svg>' },
         'xray': { name: '肺部X光片', svg: '<img src="x光片.png" style="width:100%; height:100%; object-fit:contain;">' },
         'tweezers': { name: '镊子', svg: '<img src="镊子.png" style="width:100%; height:100%; object-fit:contain;">' },
         'lung_yarn': { name: '肺里抽出的毛线', svg: '<img src="毛线.png" style="width:100%; height:100%; object-fit:contain;">' },
@@ -1046,7 +1046,22 @@
                 if (state.selectedItem === item) {
                     slot.classList.add('selected');
                 }
-                slot.innerHTML = itemsData[item].svg;
+                const svgStr = itemsData[item].svg;
+                if (svgStr.startsWith('<img')) {
+                    slot.innerHTML = svgStr;
+                } else {
+                    // 用DOMParser解析SVG，避免Mac Safari的innerHTML渲染问题
+                    try {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(svgStr, 'image/svg+xml');
+                        const svgEl = doc.documentElement;
+                        svgEl.style.width = '100%';
+                        svgEl.style.height = '100%';
+                        slot.appendChild(svgEl);
+                    } catch(e) {
+                        slot.innerHTML = svgStr;
+                    }
+                }
                 slot.onclick = () => handleInventoryClick(item);
             }
             invLayer.appendChild(slot);
