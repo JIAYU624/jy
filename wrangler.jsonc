@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jy",
+  "compatibility_date": "2026-04-03",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "诗狱"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
